@@ -53,9 +53,9 @@ const TableGenerationModal: React.FC<TableGenerationModalProps> = ({ isOpen, nod
         }
 
         if (typeof obj === 'object') {
-            Object.entries(obj).forEach(([key, value]) => {
+            Object.entries(obj as Record<string, unknown>).forEach(([key, value]) => {
                 const currentName = prefix ? `${prefix}.${key}` : key;
-                let type = typeof value;
+                let type: string = typeof value;
 
                 if (value === null) type = 'null';
                 else if (Array.isArray(value)) type = 'array';

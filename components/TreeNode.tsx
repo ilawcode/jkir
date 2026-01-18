@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ContextMenu from './ContextMenu';
 import EditModal from './EditModal';
+import TableGenerationModal from './TableGenerationModal';
 
 interface TreeNodeProps {
   nodeKey: string | number;
@@ -28,6 +29,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
 
   const currentPath = [...path, nodeKey];
 
@@ -144,6 +146,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           x={contextMenu.x}
           y={contextMenu.y}
           onEdit={handleEdit}
+          onCreateTable={() => {
+            setContextMenu(null);
+            setIsTableModalOpen(true);
+          }}
           onClose={handleCloseContextMenu}
         />
       )}
@@ -155,6 +161,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         value={value}
         onSave={handleSave}
         onClose={handleCloseEdit}
+      />
+
+      {/* Table Generation Modal */}
+      <TableGenerationModal
+        isOpen={isTableModalOpen}
+        nodeName={nodeKey}
+        data={value}
+        onClose={() => setIsTableModalOpen(false)}
       />
     </div>
   );

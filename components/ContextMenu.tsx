@@ -6,10 +6,11 @@ interface ContextMenuProps {
     x: number;
     y: number;
     onEdit: () => void;
+    onCreateTable: () => void;
     onClose: () => void;
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onEdit, onClose }) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onEdit, onCreateTable, onClose }) => {
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -47,6 +48,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onEdit, onClose }) => {
         >
             <button className="context-menu-item" onClick={onEdit}>
                 ✏️ Düzenle
+            </button>
+            <button className="context-menu-item" onClick={onCreateTable}>
+                📊 Tablo Oluştur
             </button>
         </div>
     );

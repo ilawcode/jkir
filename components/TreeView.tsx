@@ -105,23 +105,35 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
         const scrollToElement = (attempts: number = 0) => {
             const element = treeContainerRef.current?.querySelector(
                 `[data-path="${result.path}"]`
-            );
+            ) as HTMLElement | null;
             
             if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Get the scrollable container
+                const container = treeContainerRef.current;
+                if (container) {
+                    // Calculate scroll position to put element at top with some padding
+                    const containerRect = container.getBoundingClientRect();
+                    const elementRect = element.getBoundingClientRect();
+                    const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - 20;
+                    
+                    container.scrollTo({
+                        top: scrollTop,
+                        behavior: 'smooth'
+                    });
+                }
                 
                 // Remove highlight after animation
                 setTimeout(() => {
                     setHighlightedPath(null);
-                }, 3000);
-            } else if (attempts < 10) {
+                }, 3500);
+            } else if (attempts < 20) {
                 // Retry after a short delay (nodes might still be rendering)
-                setTimeout(() => scrollToElement(attempts + 1), 100);
+                setTimeout(() => scrollToElement(attempts + 1), 50);
             }
         };
         
         // Start trying after initial render
-        setTimeout(() => scrollToElement(0), 50);
+        setTimeout(() => scrollToElement(0), 100);
     }, []);
 
     // Handle keyboard events

@@ -1195,8 +1195,42 @@
   background: linear-gradient(135deg, #81c784, #388e3c);
 }
 
+/* Flow Diagram Container with Zoom */
+.flow-diagram-container {
+  flex: 1;
+  overflow: auto;
+  background: #fafafa;
+  background-image: 
+    radial-gradient(circle, #ddd 1px, transparent 1px);
+  background-size: 20px 20px;
+  position: relative;
+}
+
 .flow-diagram {
   padding: 20px;
+  min-width: fit-content;
+  transition: transform 0.1s ease-out;
+}
+
+/* Export Button Styles */
+.flow-toolbar-btn.export-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+.flow-toolbar-btn.export-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.flow-toolbar-btn.export-btn.exporting {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.flow-toolbar-btn.export-btn svg {
+  stroke: white;
 }
 
 .flow-node-container {
@@ -2678,9 +2712,65 @@
   max-width: 400px;
 }
 
+.flow-toolbar-center {
+  display: flex;
+  align-items: center;
+}
+
 .flow-toolbar-right {
   display: flex;
   gap: 8px;
+}
+
+/* Zoom Controls */
+.flow-zoom-controls {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.flow-zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.flow-zoom-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.flow-zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.flow-zoom-level {
+  min-width: 50px;
+  height: 32px;
+  background: #f8f9fa;
+  border: none;
+  border-left: 1px solid #e0e0e0;
+  border-right: 1px solid #e0e0e0;
+  color: #333;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.flow-zoom-level:hover {
+  background: #e9ecef;
 }
 
 .flow-toolbar-btn {
@@ -2917,6 +3007,36 @@
 
 .dark-theme .flow-search-more {
   background: #1a202c;
+}
+
+.dark-theme .flow-zoom-controls {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.dark-theme .flow-zoom-btn {
+  color: #a0aec0;
+}
+
+.dark-theme .flow-zoom-btn:hover:not(:disabled) {
+  background: #3d4852;
+  color: #e1e4e8;
+}
+
+.dark-theme .flow-zoom-level {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e1e4e8;
+}
+
+.dark-theme .flow-zoom-level:hover {
+  background: #2d3748;
+}
+
+.dark-theme .flow-diagram-container {
+  background: #1a202c;
+  background-image: 
+    radial-gradient(circle, #3d4852 1px, transparent 1px);
 }
 
 /* ========================================

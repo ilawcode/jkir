@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
 
 interface FlowViewProps {
     data: unknown;
@@ -23,6 +24,10 @@ interface TableModalState {
     path: string;
 }
 
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
+
 const FlowView: React.FC<FlowViewProps> = ({ data }) => {
     const [tableModal, setTableModal] = useState<TableModalState>({
         visible: false,
@@ -34,7 +39,11 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
     const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
     const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
+    const [zoom, setZoom] = useState(1);
+    const [isExporting, setIsExporting] = useState(false);
     const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+    const diagramRef = useRef<HTMLDivElement>(null);
+    const diagramContainerRef = useRef<HTMLDivElement>(null);
 
     // Collect all node IDs
     const collectNodeIds = useCallback((node: NodeInfo): string[] => {
@@ -176,6 +185,70 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
             return newSet;
         });
     }, []);
+
+    // Zoom functions
+    const zoomIn = useCallback(() => {
+        setZoom(prev => Math.min(prev + ZOOM_STEP, ZOOM_MAX));
+    }, []);
+
+    const zoomOut = useCallback(() => {
+        setZoom(prev => Math.max(prev - ZOOM_STEP, ZOOM_MIN));
+    }, []);
+
+    const resetZoom = useCallback(() => {
+        setZoom(1);
+    }, []);
+
+    // Handle mouse wheel zoom
+    const handleWheel = useCallback((e: React.WheelEvent) => {
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomIn();
+            } else {
+                zoomOut();
+            }
+        }
+    }, [zoomIn, zoomOut]);
+
+    // Export to PNG
+    const exportToPng = useCallback(async () => {
+        if (!diagramRef.current || isExporting) return;
+
+        setIsExporting(true);
+        try {
+            // Temporarily reset zoom for export
+            const originalZoom = zoom;
+            setZoom(1);
+            
+            // Wait for the zoom to apply
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const canvas = await html2canvas(diagramRef.current, {
+                backgroundColor: '#ffffff',
+                scale: 2, // Higher resolution
+                logging: false,
+                useCORS: true,
+                allowTaint: true,
+            });
+
+            // Restore zoom
+            setZoom(originalZoom);
+
+            // Create download link
+            const link = document.createElement('a');
+            link.download = `flow-diagram-${new Date().toISOString().split('T')[0]}.png`;
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Export başarısız oldu. Lütfen tekrar deneyin.');
+        } finally {
+            setIsExporting(false);
+        }
+    }, [zoom, isExporting]);
 
     // Navigate to search result
     const navigateToNode = useCallback((node: NodeInfo) => {
@@ -519,6 +592,43 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                         )}
                     </div>
                 </div>
+                <div className="flow-toolbar-center">
+                    {/* Zoom Controls */}
+                    <div className="flow-zoom-controls">
+                        <button 
+                            className="flow-zoom-btn" 
+                            onClick={zoomOut} 
+                            disabled={zoom <= ZOOM_MIN}
+                            title="Uzaklaştır (Ctrl + Scroll)"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                <line x1="8" y1="11" x2="14" y2="11"></line>
+                            </svg>
+                        </button>
+                        <button 
+                            className="flow-zoom-level" 
+                            onClick={resetZoom}
+                            title="Sıfırla"
+                        >
+                            {Math.round(zoom * 100)}%
+                        </button>
+                        <button 
+                            className="flow-zoom-btn" 
+                            onClick={zoomIn} 
+                            disabled={zoom >= ZOOM_MAX}
+                            title="Yakınlaştır (Ctrl + Scroll)"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                <line x1="11" y1="8" x2="11" y2="14"></line>
+                                <line x1="8" y1="11" x2="14" y2="11"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
                 <div className="flow-toolbar-right">
                     <button className="flow-toolbar-btn" onClick={expandAll} title="Tümünü Genişlet">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -538,6 +648,19 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                         </svg>
                         Tümünü Kapat
                     </button>
+                    <button 
+                        className={`flow-toolbar-btn export-btn ${isExporting ? 'exporting' : ''}`}
+                        onClick={exportToPng} 
+                        disabled={isExporting}
+                        title="PNG olarak dışa aktar"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        {isExporting ? 'Exporting...' : 'PNG'}
+                    </button>
                 </div>
             </div>
 
@@ -546,12 +669,25 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                 <span className="legend-item"><span className="legend-box object"></span> Object</span>
                 <span className="legend-item"><span className="legend-box array"></span> Array</span>
                 <span className="legend-item"><span className="legend-box primitive"></span> Primitive</span>
-                <span className="legend-item legend-hint">💡 Tablo için kutuya tıklayın</span>
+                <span className="legend-item legend-hint">💡 Tablo için kutuya tıklayın • Ctrl+Scroll ile yakınlaştır</span>
             </div>
 
-            {/* Diagram */}
-            <div className="flow-diagram">
-                {structure && renderNode(structure)}
+            {/* Diagram Container with Zoom */}
+            <div 
+                className="flow-diagram-container" 
+                ref={diagramContainerRef}
+                onWheel={handleWheel}
+            >
+                <div 
+                    className="flow-diagram"
+                    ref={diagramRef}
+                    style={{
+                        transform: `scale(${zoom})`,
+                        transformOrigin: 'top left',
+                    }}
+                >
+                    {structure && renderNode(structure)}
+                </div>
             </div>
 
             {renderTableModal()}

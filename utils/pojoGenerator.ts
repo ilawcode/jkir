@@ -42,6 +42,23 @@ const toCamelCase = (str: string): string => {
 };
 
 /**
+ * Convert plural field name to singular for better type inference
+ */
+const toSingular = (str: string): string => {
+  // Simple pluralization rules
+  if (str.endsWith('ies')) {
+    return str.slice(0, -3) + 'y';
+  }
+  if (str.endsWith('es')) {
+    return str.slice(0, -2);
+  }
+  if (str.endsWith('s') && !str.endsWith('ss')) {
+    return str.slice(0, -1);
+  }
+  return str;
+};
+
+/**
  * Map JSON type to Java type
  */
 const getJavaType = (value: unknown, fieldName: string): { type: string; nestedClassName?: string } => {
@@ -51,9 +68,12 @@ const getJavaType = (value: unknown, fieldName: string): { type: string; nestedC
 
   if (Array.isArray(value)) {
     if (value.length === 0) {
-      return { type: 'List<Object>' };
+      // For empty arrays, try to infer type from field name (e.g., "users" -> "User")
+      const singularName = toSingular(fieldName);
+      const inferredClassName = toPascalCase(singularName);
+      return { type: `List<${inferredClassName}>`, nestedClassName: inferredClassName };
     }
-    const itemType = getJavaType(value[0], fieldName);
+    const itemType = getJavaType(value[0], toSingular(fieldName));
     if (itemType.nestedClassName) {
       return { type: `List<${itemType.nestedClassName}>`, nestedClassName: itemType.nestedClassName };
     }
@@ -191,7 +211,8 @@ const generateNestedClasses = (
     if (typeof value === 'object' && value !== null) {
       if (Array.isArray(value)) {
         if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
-          const nestedClassName = toPascalCase(key);
+          // Use singular form for array item class name (e.g., "users" -> "User")
+          const nestedClassName = toPascalCase(toSingular(key));
           const nestedClasses = generateNestedClasses(
             value[0] as Record<string, unknown>,
             nestedClassName,

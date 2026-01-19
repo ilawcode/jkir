@@ -9,8 +9,8 @@ interface TreeNodeProps {
   nodeKey: string | number;
   value: unknown;
   isLast: boolean;
-  expandAll: boolean;
-  collapseAll: boolean;
+  expandTrigger: number;
+  collapseTrigger: number;
   depth?: number;
   path?: (string | number)[];
   onValueChange?: (path: (string | number)[], newValue: unknown) => void;
@@ -21,8 +21,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   nodeKey,
   value,
   isLast,
-  expandAll,
-  collapseAll,
+  expandTrigger,
+  collapseTrigger,
   depth = 0,
   path = [],
   onValueChange,
@@ -37,17 +37,19 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const pathString = currentPath.join('.');
   const isHighlighted = highlightedPath === pathString;
 
+  // Respond to expand trigger changes
   useEffect(() => {
-    if (expandAll) {
+    if (expandTrigger > 0) {
       setIsExpanded(true);
     }
-  }, [expandAll]);
+  }, [expandTrigger]);
 
+  // Respond to collapse trigger changes
   useEffect(() => {
-    if (collapseAll) {
+    if (collapseTrigger > 0) {
       setIsExpanded(false);
     }
-  }, [collapseAll]);
+  }, [collapseTrigger]);
 
   const isObject = value !== null && typeof value === 'object' && !Array.isArray(value);
   const isArray = Array.isArray(value);
@@ -108,8 +110,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             nodeKey={key}
             value={val}
             isLast={index === entries.length - 1}
-            expandAll={expandAll}
-            collapseAll={collapseAll}
+            expandTrigger={expandTrigger}
+            collapseTrigger={collapseTrigger}
             depth={depth + 1}
             path={currentPath}
             onValueChange={onValueChange}

@@ -273,8 +273,8 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                                 nodeKey={key}
                                 value={val}
                                 isLast={index === entries.length - 1}
-                                expandAll={expandTrigger > 0}
-                                collapseAll={collapseTrigger > 0}
+                                expandTrigger={expandTrigger}
+                                collapseTrigger={collapseTrigger}
                                 path={[]}
                                 onValueChange={handleValueChange}
                                 highlightedPath={highlightedPath}

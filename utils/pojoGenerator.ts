@@ -153,11 +153,13 @@ const generateLombokClass = (className: string, fields: FieldInfo[]): string => 
     .map((f) => `    private ${f.type} ${f.name};`)
     .join('\n');
 
-  return `import lombok.Data;
+  return `import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ${className} {

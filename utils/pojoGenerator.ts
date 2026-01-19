@@ -295,7 +295,7 @@ export const generatePojo = (
 };
 
 /**
- * Generate POJOs from multiple JSON files
+ * Generate POJOs from multiple JSON files (legacy - combined code)
  */
 export const generatePojosFromFiles = (
   files: { name: string; content: string }[],
@@ -320,6 +320,99 @@ export const generatePojosFromFiles = (
   }
 
   return results;
+};
+
+/**
+ * Generated file info for file tree structure
+ */
+export interface GeneratedFile {
+  className: string;
+  fileName: string;
+  code: string;
+  sourceFile: string;
+}
+
+/**
+ * Add imports to class code
+ */
+const addImportsToCode = (code: string): string => {
+  const needsList = code.includes('List<');
+  if (needsList) {
+    return 'import java.util.List;\n\n' + code;
+  }
+  return code;
+};
+
+/**
+ * Generate separate files for each class from JSON
+ */
+export const generatePojoFiles = (
+  jsonData: unknown,
+  className: string,
+  sourceFileName: string,
+  style: PojoStyle = 'record'
+): GeneratedFile[] => {
+  const processedClasses = new Set<string>();
+  let classes: GeneratedClass[] = [];
+
+  // Handle array at root level
+  if (Array.isArray(jsonData)) {
+    if (jsonData.length > 0 && typeof jsonData[0] === 'object' && jsonData[0] !== null) {
+      classes = generateNestedClasses(
+        jsonData[0] as Record<string, unknown>,
+        className,
+        style,
+        processedClasses
+      );
+    }
+  } else if (typeof jsonData === 'object' && jsonData !== null) {
+    classes = generateNestedClasses(
+      jsonData as Record<string, unknown>,
+      className,
+      style,
+      processedClasses
+    );
+  }
+
+  // Convert to GeneratedFile format - each class is a separate file
+  return classes.map((cls) => ({
+    className: cls.className,
+    fileName: `${cls.className}.java`,
+    code: addImportsToCode(cls.code),
+    sourceFile: sourceFileName,
+  }));
+};
+
+/**
+ * Generate separate POJO files from multiple JSON files
+ * Returns a flat list of all generated Java files
+ */
+export const generatePojoFilesFromMultiple = (
+  files: { name: string; content: string }[],
+  style: PojoStyle = 'record'
+): GeneratedFile[] => {
+  const allFiles: GeneratedFile[] = [];
+  const processedClassNames = new Set<string>();
+
+  for (const file of files) {
+    try {
+      const jsonData = JSON.parse(file.content);
+      const className = toPascalCase(file.name);
+      const generatedFiles = generatePojoFiles(jsonData, className, file.name, style);
+      
+      // Add files, avoiding duplicates by class name
+      for (const genFile of generatedFiles) {
+        if (!processedClassNames.has(genFile.className)) {
+          processedClassNames.add(genFile.className);
+          allFiles.push(genFile);
+        }
+      }
+    } catch (e) {
+      console.error(`Failed to parse ${file.name}:`, e);
+    }
+  }
+
+  return allFiles;
 };
 
 export default generatePojo;

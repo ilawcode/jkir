@@ -2717,3 +2717,175 @@
   background: #4c4c4c;
   color: white;
 }
+
+/* ========================================
+   POJO MODAL V2 - FILE TREE LAYOUT
+   ======================================== */
+
+.pojo-modal-v2 {
+  max-width: 1100px;
+  height: 80vh;
+}
+
+.pojo-modal-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+/* File Tree */
+.pojo-file-tree {
+  width: 250px;
+  min-width: 200px;
+  background: #252526;
+  border-right: 1px solid #3c3c3c;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.file-tree-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3c3c3c;
+  color: #f89820;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.file-tree-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px 8px 24px;
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.file-tree-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.file-tree-item.active {
+  background: rgba(248, 152, 32, 0.15);
+  color: #f89820;
+}
+
+.file-tree-item svg {
+  flex-shrink: 0;
+  color: #f89820;
+}
+
+.file-tree-item .file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Code View */
+.pojo-code-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pojo-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.code-file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.code-file-info .code-filename {
+  font-size: 13px;
+  color: #f89820;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-weight: 500;
+}
+
+.code-file-info .code-source {
+  font-size: 11px;
+  color: #666;
+}
+
+.code-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.code-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #3c3c3c;
+  border: none;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.code-action-btn:hover {
+  background: #4c4c4c;
+  color: white;
+}
+
+.code-action-btn.copied {
+  background: #28a745;
+  color: white;
+}
+
+.pojo-code {
+  flex: 1;
+  margin: 0;
+  padding: 16px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: auto;
+}
+
+.pojo-code code {
+  display: block;
+  white-space: pre;
+}
+
+/* Action Button Primary */
+.action-btn-primary {
+  background: #f89820 !important;
+  border-color: #f89820 !important;
+  color: white !important;
+}
+
+.action-btn-primary:hover {
+  background: #e78810 !important;
+}

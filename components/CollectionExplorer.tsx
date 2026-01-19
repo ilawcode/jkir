@@ -6,6 +6,7 @@ import CollectionItem from './CollectionItem';
 import CollectionContextMenu from './CollectionContextMenu';
 import RenameModal from './RenameModal';
 import InputModal from './InputModal';
+import PojoModal from './PojoModal';
 
 interface CollectionExplorerProps {
   collections: JkirCollection[];
@@ -68,6 +69,14 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   }>({
     visible: false,
     item: null,
+  });
+
+  const [pojoModal, setPojoModal] = useState<{
+    visible: boolean;
+    files: { name: string; content: string }[];
+  }>({
+    visible: false,
+    files: [],
   });
 
   const handleContextMenu = useCallback((e: React.MouseEvent, item: JkirCollection) => {
@@ -154,6 +163,51 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     setInputModal({ type: null, parentId: null });
   }, []);
 
+  // Collect all files from a folder recursively
+  const collectFilesFromFolder = useCallback((folder: JkirCollection): { name: string; content: string }[] => {
+    const files: { name: string; content: string }[] = [];
+    
+    if (folder.children) {
+      for (const child of folder.children) {
+        if (child.type === 'file' && child.content) {
+          files.push({ name: child.name, content: child.content });
+        } else if (child.type === 'folder') {
+          files.push(...collectFilesFromFolder(child));
+        }
+      }
+    }
+    
+    return files;
+  }, []);
+
+  const handleGeneratePojoClick = useCallback(() => {
+    if (!contextMenu.item) {
+      closeContextMenu();
+      return;
+    }
+
+    const item = contextMenu.item;
+    let files: { name: string; content: string }[] = [];
+
+    if (item.type === 'folder') {
+      // Collect all JSON files from the folder
+      files = collectFilesFromFolder(item);
+    } else if (item.type === 'file' && item.content) {
+      // Single file
+      files = [{ name: item.name, content: item.content }];
+    }
+
+    if (files.length > 0) {
+      setPojoModal({ visible: true, files });
+    }
+
+    closeContextMenu();
+  }, [contextMenu.item, collectFilesFromFolder, closeContextMenu]);
+
+  const handlePojoModalClose = useCallback(() => {
+    setPojoModal({ visible: false, files: [] });
+  }, []);
+
   // Close context menu on click outside
   useEffect(() => {
     const handleClick = () => closeContextMenu();
@@ -196,6 +250,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
           onDuplicate={handleDuplicateClick}
           onNewFile={handleNewFileClick}
           onNewFolder={handleNewFolderClick}
+          onGeneratePojo={handleGeneratePojoClick}
           onClose={closeContextMenu}
         />
       )}
@@ -265,6 +320,12 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
           </div>
         </div>
       )}
+
+      <PojoModal
+        visible={pojoModal.visible}
+        files={pojoModal.files}
+        onClose={handlePojoModalClose}
+      />
     </div>
   );
 };

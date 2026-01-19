@@ -12,6 +12,7 @@ interface CollectionContextMenuProps {
   onDuplicate: () => void;
   onNewFile: () => void;
   onNewFolder: () => void;
+  onGeneratePojo: () => void;
   onClose: () => void;
 }
 
@@ -24,6 +25,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
   onDuplicate,
   onNewFile,
   onNewFolder,
+  onGeneratePojo,
   onClose,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -90,6 +92,13 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
       <button className="context-menu-item" onClick={onDuplicate}>
         <span className="context-icon">📋</span>
         <span>Kopyala</span>
+      </button>
+      
+      <div className="context-menu-divider" />
+
+      <button className="context-menu-item java-pojo" onClick={onGeneratePojo}>
+        <span className="context-icon">☕</span>
+        <span>Java POJO Oluştur</span>
       </button>
       
       <div className="context-menu-divider" />

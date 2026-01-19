@@ -9,7 +9,9 @@ import QueryView from '../components/QueryView';
 import CollectionToolbar from '../components/CollectionToolbar';
 import CollectionExplorer from '../components/CollectionExplorer';
 import FileEditor from '../components/FileEditor';
+import ThemeToggle from '../components/ThemeToggle';
 import useCollections from '../hooks/useCollections';
+import useTheme from '../hooks/useTheme';
 
 export default function Home() {
   const {
@@ -30,6 +32,8 @@ export default function Home() {
     expandToItem,
     searchCollections,
   } = useCollections();
+
+  const { theme, resolvedTheme, setTheme } = useTheme();
 
   const [parsedJson, setParsedJson] = useState<unknown>(null);
   const [activeTab, setActiveTab] = useState<TabType>('tree');
@@ -93,8 +97,17 @@ export default function Home() {
     <div className="d-flex flex-column vh-100">
       {/* Header */}
       <header className="app-header">
-        <h1>🔍 JSON Görüntüleyici</h1>
-        <p className="mb-0 opacity-75">API JSON verilerini kolayca görselleştirin</p>
+        <div className="header-left">
+          <h1>🔍 JSON Görüntüleyici</h1>
+          <p className="header-subtitle">API JSON verilerini kolayca görselleştirin</p>
+        </div>
+        <div className="header-right">
+          <ThemeToggle
+            theme={theme}
+            resolvedTheme={resolvedTheme}
+            onThemeChange={setTheme}
+          />
+        </div>
       </header>
 
       {/* Main Content - Split Screen */}

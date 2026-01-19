@@ -14,6 +14,7 @@ interface TreeNodeProps {
   depth?: number;
   path?: (string | number)[];
   onValueChange?: (path: (string | number)[], newValue: unknown) => void;
+  highlightedPath?: string | null;
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({
@@ -25,6 +26,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   depth = 0,
   path = [],
   onValueChange,
+  highlightedPath,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
@@ -32,6 +34,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
 
   const currentPath = [...path, nodeKey];
+  const pathString = currentPath.join('.');
+  const isHighlighted = highlightedPath === pathString;
 
   useEffect(() => {
     if (expandAll) {
@@ -109,6 +113,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             depth={depth + 1}
             path={currentPath}
             onValueChange={onValueChange}
+            highlightedPath={highlightedPath}
           />
         ))}
       </div>
@@ -122,7 +127,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   };
 
   return (
-    <div className="tree-node">
+    <div className={`tree-node ${isHighlighted ? 'highlighted' : ''}`} data-path={pathString}>
       <div
         className="tree-node-content"
         onClick={toggleExpand}

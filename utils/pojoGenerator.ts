@@ -59,10 +59,29 @@ const toSingular = (str: string): string => {
 };
 
 /**
+ * Check if field name suggests it should be an object type
+ * Common patterns: ends with "Info", "Data", "Details", "Config", "Settings", "Response", "Request", etc.
+ */
+const shouldInferAsObject = (fieldName: string): boolean => {
+  const objectSuffixes = ['info', 'data', 'details', 'config', 'settings', 'response', 'request', 'result', 'options', 'params', 'body', 'payload', 'content', 'metadata'];
+  const lowerName = fieldName.toLowerCase();
+  return objectSuffixes.some(suffix => lowerName.endsWith(suffix)) || 
+         lowerName.includes('_') || // snake_case usually indicates object
+         /[A-Z]/.test(fieldName); // camelCase usually indicates object
+};
+
+/**
  * Map JSON type to Java type
  */
 const getJavaType = (value: unknown, fieldName: string): { type: string; nestedClassName?: string } => {
   if (value === null) {
+    // Try to infer type from field name for null values
+    // If field name suggests it's an object, use the class name
+    if (shouldInferAsObject(fieldName)) {
+      const className = toPascalCase(fieldName);
+      return { type: className, nestedClassName: className };
+    }
+    // Otherwise use Object as fallback
     return { type: 'Object' };
   }
 
@@ -208,7 +227,30 @@ const generateNestedClasses = (
 
   // Generate nested classes first
   for (const [key, value] of Object.entries(obj)) {
-    if (typeof value === 'object' && value !== null) {
+    if (value === null) {
+      // For null values that should be objects, generate an empty placeholder class
+      if (shouldInferAsObject(key)) {
+        const nestedClassName = toPascalCase(key);
+        if (!processedClasses.has(nestedClassName)) {
+          processedClasses.add(nestedClassName);
+          // Generate empty class as placeholder
+          let code: string;
+          switch (style) {
+            case 'record':
+              code = `public record ${nestedClassName}() {}`;
+              break;
+            case 'lombok':
+              code = `import lombok.Getter;\nimport lombok.Setter;\nimport lombok.NoArgsConstructor;\nimport lombok.AllArgsConstructor;\n\n@Getter\n@Setter\n@NoArgsConstructor\n@AllArgsConstructor\npublic class ${nestedClassName} {\n}`;
+              break;
+            case 'class':
+            default:
+              code = `public class ${nestedClassName} {\n\n    public ${nestedClassName}() {\n    }\n}`;
+              break;
+          }
+          classes.push({ className: nestedClassName, code, isNested: true });
+        }
+      }
+    } else if (typeof value === 'object') {
       if (Array.isArray(value)) {
         if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
           // Use singular form for array item class name (e.g., "users" -> "User")
@@ -220,6 +262,26 @@ const generateNestedClasses = (
             processedClasses
           );
           classes.push(...nestedClasses);
+        } else if (value.length === 0) {
+          // For empty arrays, generate placeholder class based on field name
+          const nestedClassName = toPascalCase(toSingular(key));
+          if (!processedClasses.has(nestedClassName)) {
+            processedClasses.add(nestedClassName);
+            let code: string;
+            switch (style) {
+              case 'record':
+                code = `public record ${nestedClassName}() {}`;
+                break;
+              case 'lombok':
+                code = `import lombok.Getter;\nimport lombok.Setter;\nimport lombok.NoArgsConstructor;\nimport lombok.AllArgsConstructor;\n\n@Getter\n@Setter\n@NoArgsConstructor\n@AllArgsConstructor\npublic class ${nestedClassName} {\n}`;
+                break;
+              case 'class':
+              default:
+                code = `public class ${nestedClassName} {\n\n    public ${nestedClassName}() {\n    }\n}`;
+                break;
+            }
+            classes.push({ className: nestedClassName, code, isNested: true });
+          }
         }
       } else {
         const nestedClassName = toPascalCase(key);

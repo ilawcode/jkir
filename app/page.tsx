@@ -1,50 +1,63 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import JsonInput, { JsonInputRef } from '../components/JsonInput';
+import { useState, useCallback } from 'react';
 import TabNavigation, { TabType } from '../components/TabNavigation';
 import TreeView from '../components/TreeView';
 import CodeView from '../components/CodeView';
 import FlowView from '../components/FlowView';
 import QueryView from '../components/QueryView';
-
-const STORAGE_KEY = 'json-viewer-data';
+import CollectionToolbar from '../components/CollectionToolbar';
+import CollectionExplorer from '../components/CollectionExplorer';
+import FileEditor from '../components/FileEditor';
+import useCollections from '../hooks/useCollections';
 
 export default function Home() {
+  const {
+    collections,
+    selectedId,
+    selectedItem,
+    isLoaded,
+    setSelectedId,
+    createFolder,
+    createFile,
+    renameItem,
+    deleteItem,
+    updateFileContent,
+    toggleFolder,
+    duplicateItem,
+    exportCollections,
+    importCollections,
+  } = useCollections();
+
   const [parsedJson, setParsedJson] = useState<unknown>(null);
-  const [inputText, setInputText] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabType>('tree');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const jsonInputRef = useRef<JsonInputRef>(null);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setParsedJson(parsed);
-        setInputText(saved);
-      } catch {
-        setInputText(saved);
-      }
-    }
-  }, []);
 
   const handleJsonParse = useCallback((data: unknown) => {
     setParsedJson(data);
-    if (data !== null) {
-      const formatted = JSON.stringify(data, null, 2);
-      setInputText(formatted);
-    }
   }, []);
+
+  const handleContentChange = useCallback((content: string) => {
+    if (selectedId) {
+      updateFileContent(selectedId, content);
+    }
+  }, [selectedId, updateFileContent]);
 
   const handleDataChange = useCallback((newData: unknown) => {
     setParsedJson(newData);
-    const formatted = JSON.stringify(newData, null, 2);
-    setInputText(formatted);
-    localStorage.setItem(STORAGE_KEY, formatted);
-  }, []);
+    if (selectedId) {
+      const formatted = JSON.stringify(newData, null, 2);
+      updateFileContent(selectedId, formatted);
+    }
+  }, [selectedId, updateFileContent]);
+
+  const handleCreateFolder = useCallback((name: string, parentId?: string) => {
+    createFolder(name, parentId);
+  }, [createFolder]);
+
+  const handleCreateFile = useCallback((name: string, parentId?: string) => {
+    createFile(name, parentId);
+  }, [createFile]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -60,6 +73,19 @@ export default function Home() {
         return <TreeView data={parsedJson} onDataChange={handleDataChange} />;
     }
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="d-flex align-items-center justify-content-center vh-100">
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">Yükleniyor...</span>
+          </div>
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="d-flex flex-column vh-100">
@@ -81,13 +107,41 @@ export default function Home() {
         </button>
 
         <div className="row g-0 h-100 flex-nowrap">
-          {/* Left Panel - JSON Input */}
+          {/* Left Panel - Collection Explorer & File Editor */}
           <div className={`col-md-5 split-panel left-panel ${!isSidebarOpen ? 'collapsed' : ''}`}>
-            <JsonInput
-              ref={jsonInputRef}
-              onJsonParse={handleJsonParse}
-              externalValue={inputText}
-            />
+            <div className="left-panel-container">
+              {/* Collection Toolbar */}
+              <CollectionToolbar
+                onCreateFolder={(name) => handleCreateFolder(name)}
+                onCreateFile={(name) => handleCreateFile(name)}
+                onExport={exportCollections}
+                onImport={importCollections}
+              />
+
+              {/* Collection Explorer */}
+              <div className="collection-explorer-wrapper">
+                <CollectionExplorer
+                  collections={collections}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  onToggle={toggleFolder}
+                  onRename={renameItem}
+                  onDelete={deleteItem}
+                  onDuplicate={duplicateItem}
+                  onCreateFile={handleCreateFile}
+                  onCreateFolder={handleCreateFolder}
+                />
+              </div>
+
+              {/* File Editor */}
+              <div className="file-editor-wrapper">
+                <FileEditor
+                  file={selectedItem}
+                  onContentChange={handleContentChange}
+                  onJsonParse={handleJsonParse}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Right Panel - Tabbed Views */}

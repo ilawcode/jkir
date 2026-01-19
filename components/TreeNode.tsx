@@ -28,10 +28,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   onValueChange,
   highlightedPath,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Start expanded if expandTrigger is already > 0 (for newly mounted nodes during cascade)
+  const [isExpanded, setIsExpanded] = useState(() => expandTrigger > 0);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [lastExpandTrigger, setLastExpandTrigger] = useState(expandTrigger);
+  const [lastCollapseTrigger, setLastCollapseTrigger] = useState(collapseTrigger);
 
   const currentPath = [...path, nodeKey];
   const pathString = currentPath.join('.');
@@ -39,17 +42,19 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
   // Respond to expand trigger changes
   useEffect(() => {
-    if (expandTrigger > 0) {
+    if (expandTrigger > lastExpandTrigger) {
       setIsExpanded(true);
+      setLastExpandTrigger(expandTrigger);
     }
-  }, [expandTrigger]);
+  }, [expandTrigger, lastExpandTrigger]);
 
   // Respond to collapse trigger changes
   useEffect(() => {
-    if (collapseTrigger > 0) {
+    if (collapseTrigger > lastCollapseTrigger) {
       setIsExpanded(false);
+      setLastCollapseTrigger(collapseTrigger);
     }
-  }, [collapseTrigger]);
+  }, [collapseTrigger, lastCollapseTrigger]);
 
   const isObject = value !== null && typeof value === 'object' && !Array.isArray(value);
   const isArray = Array.isArray(value);

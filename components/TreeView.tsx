@@ -90,19 +90,36 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
 
     // Handle search result click
     const handleSearchResultClick = useCallback((result: SearchResult) => {
-        // Expand all nodes first
-        setExpandTrigger(prev => prev + 1);
+        // Expand all nodes first - multiple triggers to ensure all levels expand
+        // Each trigger causes one level to expand, so we need enough for deep structures
+        const pathDepth = result.path.split('.').length;
         
-        // Set highlighted path
-        setHighlightedPath(result.path);
-        
-        // Clear search
+        // Clear search immediately
         setSearchQuery('');
         setSearchResults([]);
         setShowSearchResults(false);
         
+        // Set highlighted path
+        setHighlightedPath(result.path);
+        
+        // Fire multiple expand triggers with delays to ensure cascade expansion works
+        // For each level of nesting, we need to trigger expansion
+        let triggerCount = 0;
+        const triggerExpansion = () => {
+            if (triggerCount < pathDepth + 2) {
+                setExpandTrigger(prev => prev + 1);
+                triggerCount++;
+                setTimeout(triggerExpansion, 30);
+            }
+        };
+        triggerExpansion();
+        
         // Scroll to element after expansion with retry mechanism
-        const scrollToElement = (attempts: number = 0) => {
+        // Use longer timeout and more attempts for deep structures
+        const maxWaitTime = Math.max(3000, pathDepth * 500); // At least 3s, more for deep paths
+        const startTime = Date.now();
+        
+        const scrollToElement = () => {
             const element = treeContainerRef.current?.querySelector(
                 `[data-path="${result.path}"]`
             ) as HTMLElement | null;
@@ -117,7 +134,7 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                     const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - 20;
                     
                     container.scrollTo({
-                        top: scrollTop,
+                        top: Math.max(0, scrollTop),
                         behavior: 'smooth'
                     });
                 }
@@ -125,15 +142,17 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                 // Remove highlight after animation
                 setTimeout(() => {
                     setHighlightedPath(null);
-                }, 3500);
-            } else if (attempts < 20) {
-                // Retry after a short delay (nodes might still be rendering)
-                setTimeout(() => scrollToElement(attempts + 1), 50);
+                }, 4000);
+            } else if (Date.now() - startTime < maxWaitTime) {
+                // Keep trying until max wait time is reached
+                requestAnimationFrame(() => {
+                    setTimeout(scrollToElement, 50);
+                });
             }
         };
         
-        // Start trying after initial render
-        setTimeout(() => scrollToElement(0), 100);
+        // Start trying after initial render delay
+        setTimeout(scrollToElement, 150);
     }, []);
 
     // Handle keyboard events

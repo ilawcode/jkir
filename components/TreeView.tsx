@@ -90,7 +90,7 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
 
     // Handle search result click
     const handleSearchResultClick = useCallback((result: SearchResult) => {
-        // Expand all nodes
+        // Expand all nodes first
         setExpandTrigger(prev => prev + 1);
         
         // Set highlighted path
@@ -101,20 +101,27 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
         setSearchResults([]);
         setShowSearchResults(false);
         
-        // Scroll to element after expansion
-        setTimeout(() => {
+        // Scroll to element after expansion with retry mechanism
+        const scrollToElement = (attempts: number = 0) => {
             const element = treeContainerRef.current?.querySelector(
                 `[data-path="${result.path}"]`
             );
+            
             if (element) {
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Remove highlight after animation
+                setTimeout(() => {
+                    setHighlightedPath(null);
+                }, 3000);
+            } else if (attempts < 10) {
+                // Retry after a short delay (nodes might still be rendering)
+                setTimeout(() => scrollToElement(attempts + 1), 100);
             }
-            
-            // Remove highlight after animation
-            setTimeout(() => {
-                setHighlightedPath(null);
-            }, 3000);
-        }, 100);
+        };
+        
+        // Start trying after initial render
+        setTimeout(() => scrollToElement(0), 50);
     }, []);
 
     // Handle keyboard events

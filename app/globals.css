@@ -387,17 +387,22 @@
 
 /* Tree Node Highlight */
 .tree-node.highlighted > .tree-node-content {
-  background: rgba(255, 193, 7, 0.3);
+  background: rgba(255, 193, 7, 0.4);
   border-radius: 4px;
-  animation: tree-highlight-pulse 0.5s ease-in-out 3;
+  box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.6), 0 0 12px rgba(255, 193, 7, 0.4);
+  animation: tree-highlight-pulse 0.6s ease-in-out 4;
+  position: relative;
+  z-index: 10;
 }
 
 @keyframes tree-highlight-pulse {
   0%, 100% {
-    background: rgba(255, 193, 7, 0.3);
+    background: rgba(255, 193, 7, 0.4);
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.6), 0 0 12px rgba(255, 193, 7, 0.4);
   }
   50% {
-    background: rgba(255, 193, 7, 0.5);
+    background: rgba(255, 193, 7, 0.7);
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.8), 0 0 20px rgba(255, 193, 7, 0.6);
   }
 }
 

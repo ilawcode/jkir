@@ -27,6 +27,8 @@ export default function Home() {
     duplicateItem,
     exportCollections,
     importCollections,
+    expandToItem,
+    searchCollections,
   } = useCollections();
 
   const [parsedJson, setParsedJson] = useState<unknown>(null);
@@ -130,6 +132,8 @@ export default function Home() {
                   onDuplicate={duplicateItem}
                   onCreateFile={handleCreateFile}
                   onCreateFolder={handleCreateFolder}
+                  onExpandToItem={expandToItem}
+                  onSearch={searchCollections}
                 />
               </div>
 

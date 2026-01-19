@@ -357,6 +357,76 @@ export const useCollections = () => {
     setSelectedId(null);
   }, []);
 
+  // Get all ancestor IDs for a given item
+  const getAncestorIds = useCallback((id: string): string[] => {
+    const ancestors: string[] = [];
+    
+    const findAncestors = (items: JkirCollection[], targetId: string, path: string[]): boolean => {
+      for (const item of items) {
+        if (item.id === targetId) {
+          ancestors.push(...path);
+          return true;
+        }
+        if (item.children) {
+          if (findAncestors(item.children, targetId, [...path, item.id])) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    
+    findAncestors(collections, id, []);
+    return ancestors;
+  }, [collections]);
+
+  // Expand all ancestor folders for a given item
+  const expandToItem = useCallback((id: string) => {
+    const ancestors = getAncestorIds(id);
+    if (ancestors.length === 0) return;
+
+    setCollections((prev) => {
+      const expandFolders = (items: JkirCollection[]): JkirCollection[] => {
+        return items.map((item) => {
+          if (ancestors.includes(item.id) && item.type === 'folder') {
+            return { 
+              ...item, 
+              isExpanded: true,
+              children: item.children ? expandFolders(item.children) : item.children
+            };
+          }
+          if (item.children) {
+            return { ...item, children: expandFolders(item.children) };
+          }
+          return item;
+        });
+      };
+      return expandFolders(prev);
+    });
+  }, [getAncestorIds]);
+
+  // Search collections by name
+  const searchCollections = useCallback((query: string): JkirCollection[] => {
+    if (!query.trim()) return [];
+    
+    const results: JkirCollection[] = [];
+    const lowerQuery = query.toLowerCase();
+    
+    const searchRecursive = (items: JkirCollection[]) => {
+      for (const item of items) {
+        if (item.name.toLowerCase().includes(lowerQuery)) {
+          results.push(item);
+        }
+        if (item.children) {
+          searchRecursive(item.children);
+        }
+      }
+    };
+    
+    searchRecursive(collections);
+    return results;
+  }, [collections]);
+
   return {
     collections,
     selectedId,
@@ -374,6 +444,8 @@ export const useCollections = () => {
     importCollections,
     clearAll,
     findItemById,
+    expandToItem,
+    searchCollections,
   };
 };
 

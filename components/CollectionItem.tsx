@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { JkirCollection } from '../hooks/useCollections';
 
 interface CollectionItemProps {
   item: JkirCollection;
   selectedId: string | null;
+  highlightedId: string | null;
   level: number;
   onSelect: (id: string) => void;
   onToggle: (id: string) => void;
@@ -15,12 +16,14 @@ interface CollectionItemProps {
 const CollectionItem: React.FC<CollectionItemProps> = ({
   item,
   selectedId,
+  highlightedId,
   level,
   onSelect,
   onToggle,
   onContextMenu,
 }) => {
   const isSelected = selectedId === item.id;
+  const isHighlighted = highlightedId === item.id;
   const isFolder = item.type === 'folder';
   const hasChildren = isFolder && item.children && item.children.length > 0;
 
@@ -48,8 +51,9 @@ const CollectionItem: React.FC<CollectionItemProps> = ({
   return (
     <div className="collection-item-wrapper">
       <div
-        className={`collection-item ${isSelected ? 'selected' : ''} ${isFolder ? 'folder' : 'file'}`}
+        className={`collection-item ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''} ${isFolder ? 'folder' : 'file'}`}
         style={{ paddingLeft: `${level * 16 + 8}px` }}
+        data-item-id={item.id}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
@@ -74,6 +78,7 @@ const CollectionItem: React.FC<CollectionItemProps> = ({
               key={child.id}
               item={child}
               selectedId={selectedId}
+              highlightedId={highlightedId}
               level={level + 1}
               onSelect={onSelect}
               onToggle={onToggle}

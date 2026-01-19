@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { JkirCollection } from '../hooks/useCollections';
 import CollectionItem from './CollectionItem';
 import CollectionContextMenu from './CollectionContextMenu';
@@ -18,6 +18,8 @@ interface CollectionExplorerProps {
   onDuplicate: (id: string) => void;
   onCreateFile: (name: string, parentId?: string) => void;
   onCreateFolder: (name: string, parentId?: string) => void;
+  onExpandToItem: (id: string) => void;
+  onSearch: (query: string) => JkirCollection[];
 }
 
 interface ContextMenuState {
@@ -39,6 +41,8 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   onDuplicate,
   onCreateFile,
   onCreateFolder,
+  onExpandToItem,
+  onSearch,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
@@ -78,6 +82,15 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     visible: false,
     files: [],
   });
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<JkirCollection[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
+  const treeRef = useRef<HTMLDivElement>(null);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, item: JkirCollection) => {
     e.preventDefault();
@@ -208,6 +221,59 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     setPojoModal({ visible: false, files: [] });
   }, []);
 
+  // Search handlers
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.trim()) {
+      const results = onSearch(query);
+      setSearchResults(results);
+      setShowSearchResults(true);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  }, [onSearch]);
+
+  const handleSearchResultClick = useCallback((item: JkirCollection) => {
+    // Expand all parent folders
+    onExpandToItem(item.id);
+    
+    // Select the item
+    onSelect(item.id);
+    
+    // Highlight the item
+    setHighlightedId(item.id);
+    
+    // Clear search
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchResults(false);
+    
+    // Scroll to item after a small delay to allow expansion
+    setTimeout(() => {
+      const element = treeRef.current?.querySelector(`[data-item-id="${item.id}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
+      // Remove highlight after animation
+      setTimeout(() => {
+        setHighlightedId(null);
+      }, 2000);
+    }, 100);
+  }, [onExpandToItem, onSelect]);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setSearchQuery('');
+      setSearchResults([]);
+      setShowSearchResults(false);
+      searchInputRef.current?.blur();
+    }
+  }, []);
+
   // Close context menu on click outside
   useEffect(() => {
     const handleClick = () => closeContextMenu();
@@ -217,20 +283,98 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     }
   }, [contextMenu.visible, closeContextMenu]);
 
+  // Close search results on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        searchResultsRef.current &&
+        !searchResultsRef.current.contains(e.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(e.target as Node)
+      ) {
+        setShowSearchResults(false);
+      }
+    };
+
+    if (showSearchResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showSearchResults]);
+
   return (
     <div className="collection-explorer">
+      {/* Search Input */}
+      <div className="collection-search-wrapper">
+        <div className="collection-search">
+          <span className="collection-search-icon">🔍</span>
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="collection-search-input"
+            placeholder="Ara..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
+            onFocus={() => searchQuery && setShowSearchResults(true)}
+          />
+          {searchQuery && (
+            <button 
+              className="collection-search-clear"
+              onClick={() => {
+                setSearchQuery('');
+                setSearchResults([]);
+                setShowSearchResults(false);
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+        
+        {/* Search Results Dropdown */}
+        {showSearchResults && searchResults.length > 0 && (
+          <div ref={searchResultsRef} className="collection-search-results">
+            {searchResults.map((item) => (
+              <button
+                key={item.id}
+                className="collection-search-result-item"
+                onClick={() => handleSearchResultClick(item)}
+              >
+                <span className="search-result-icon">
+                  {item.type === 'folder' ? '📁' : '📄'}
+                </span>
+                <span className="search-result-name">{item.name}</span>
+                <span className="search-result-type">
+                  {item.type === 'folder' ? 'Klasör' : 'Dosya'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+        
+        {showSearchResults && searchQuery && searchResults.length === 0 && (
+          <div ref={searchResultsRef} className="collection-search-results">
+            <div className="collection-search-no-results">
+              Sonuç bulunamadı
+            </div>
+          </div>
+        )}
+      </div>
+
       {collections.length === 0 ? (
         <div className="collection-empty">
           <p>Henüz koleksiyon yok</p>
           <p className="text-muted small">Yeni klasör veya dosya ekleyin</p>
         </div>
       ) : (
-        <div className="collection-tree">
+        <div className="collection-tree" ref={treeRef}>
           {collections.map((item) => (
             <CollectionItem
               key={item.id}
               item={item}
               selectedId={selectedId}
+              highlightedId={highlightedId}
               level={0}
               onSelect={onSelect}
               onToggle={onToggle}

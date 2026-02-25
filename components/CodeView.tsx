@@ -1,99 +1,225 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { JkirCollection } from '../hooks/useCollections';
 
 interface CodeViewProps {
-    data: unknown;
+    file: JkirCollection | null;
+    onContentChange: (content: string) => void;
+    onJsonParse: (data: unknown) => void;
 }
 
-const CodeView: React.FC<CodeViewProps> = ({ data }) => {
-    const { lines, lineCount } = useMemo(() => {
-        if (!data) {
-            return { lines: [], lineCount: 0 };
+const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse }) => {
+    const [inputValue, setInputValue] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const gutterRef = useRef<HTMLDivElement>(null);
+
+    // Load content when file changes
+    useEffect(() => {
+        if (file && file.type === 'file') {
+            const content = file.content || '{}';
+            setInputValue(content);
+            setError(null);
+
+            try {
+                const parsed = JSON.parse(content);
+                onJsonParse(parsed);
+            } catch {
+                onJsonParse(null);
+            }
+        } else {
+            setInputValue('');
+            setError(null);
+            onJsonParse(null);
         }
-        const jsonString = JSON.stringify(data, null, 2);
-        const lineArray = jsonString.split('\n');
-        return { lines: lineArray, lineCount: lineArray.length };
-    }, [data]);
+    }, [file?.id]);
 
-    const syntaxHighlight = (line: string): React.ReactNode => {
-        // Match different JSON parts
-        const parts: React.ReactNode[] = [];
-        let remaining = line;
-        let key = 0;
+    // Sync scroll between textarea and gutter
+    const handleScroll = useCallback(() => {
+        if (textareaRef.current && gutterRef.current) {
+            gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+        }
+    }, []);
 
-        // Match key-value patterns
-        const keyMatch = remaining.match(/^(\s*)("[\w\s-]+")(:\s*)/);
-        if (keyMatch) {
-            parts.push(<span key={key++} className="code-indent">{keyMatch[1]}</span>);
-            parts.push(<span key={key++} className="code-key">{keyMatch[2]}</span>);
-            parts.push(<span key={key++} className="code-colon">{keyMatch[3]}</span>);
-            remaining = remaining.slice(keyMatch[0].length);
+    const lineCount = useMemo(() => {
+        return inputValue.split('\n').length;
+    }, [inputValue]);
+
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setInputValue(value);
+        setError(null);
+        onContentChange(value);
+
+        try {
+            const parsed = JSON.parse(value);
+            onJsonParse(parsed);
+        } catch {
+            // Don't set error while typing
+        }
+    }, [onContentChange, onJsonParse]);
+
+    const handleFormat = useCallback(() => {
+        if (!inputValue.trim()) {
+            setError('Lütfen JSON verisi girin');
+            onJsonParse(null);
+            return;
         }
 
-        // Match values
-        if (remaining) {
-            // String value
-            const stringMatch = remaining.match(/^(".*?")(,?)$/);
-            if (stringMatch) {
-                parts.push(<span key={key++} className="code-string">{stringMatch[1]}</span>);
-                if (stringMatch[2]) parts.push(<span key={key++} className="code-comma">{stringMatch[2]}</span>);
+        try {
+            const parsed = JSON.parse(inputValue);
+            const formatted = JSON.stringify(parsed, null, 2);
+            setInputValue(formatted);
+            setError(null);
+            onJsonParse(parsed);
+            onContentChange(formatted);
+        } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : 'Bilinmeyen hata';
+            setError(`Geçersiz JSON: ${errorMessage}`);
+            onJsonParse(null);
+        }
+    }, [inputValue, onJsonParse, onContentChange]);
+
+    const handleClear = useCallback(() => {
+        setInputValue('');
+        setError(null);
+        onJsonParse(null);
+        onContentChange('');
+    }, [onJsonParse, onContentChange]);
+
+    const handlePaste = useCallback(async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            setInputValue(text);
+            setError(null);
+            onContentChange(text);
+
+            try {
+                const parsed = JSON.parse(text);
+                onJsonParse(parsed);
+            } catch {
+                // pasted content may not be valid JSON yet
             }
-            // Number value
-            else if (/^-?\d+\.?\d*(,?)$/.test(remaining)) {
-                const numMatch = remaining.match(/^(-?\d+\.?\d*)(,?)$/);
-                if (numMatch) {
-                    parts.push(<span key={key++} className="code-number">{numMatch[1]}</span>);
-                    if (numMatch[2]) parts.push(<span key={key++} className="code-comma">{numMatch[2]}</span>);
-                }
-            }
-            // Boolean/null
-            else if (/^(true|false|null)(,?)$/.test(remaining)) {
-                const boolMatch = remaining.match(/^(true|false|null)(,?)$/);
-                if (boolMatch) {
-                    parts.push(<span key={key++} className="code-boolean">{boolMatch[1]}</span>);
-                    if (boolMatch[2]) parts.push(<span key={key++} className="code-comma">{boolMatch[2]}</span>);
-                }
-            }
-            // Brackets
-            else if (/^[\[\]{}],?$/.test(remaining.trim())) {
-                parts.push(<span key={key++} className="code-bracket">{remaining}</span>);
-            }
-            // Other
-            else {
-                parts.push(<span key={key++}>{remaining}</span>);
-            }
+        } catch (e) {
+            console.error('Clipboard access denied:', e);
+            setError('Pano erişimi reddedildi. Lütfen manuel olarak yapıştırın.');
+        }
+    }, [onContentChange, onJsonParse]);
+
+    const handleMinify = useCallback(() => {
+        if (!inputValue.trim()) {
+            setError('Lütfen JSON verisi girin');
+            return;
         }
 
-        return parts.length > 0 ? parts : line;
-    };
+        try {
+            const parsed = JSON.parse(inputValue);
+            const minified = JSON.stringify(parsed);
+            setInputValue(minified);
+            setError(null);
+            onContentChange(minified);
+        } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : 'Bilinmeyen hata';
+            setError(`Geçersiz JSON: ${errorMessage}`);
+        }
+    }, [inputValue, onContentChange]);
 
-    if (!data) {
+    const handleCopy = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(inputValue);
+        } catch (e) {
+            console.error('Failed to copy:', e);
+        }
+    }, [inputValue]);
+
+    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const textarea = e.currentTarget;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const newValue = inputValue.substring(0, start) + '  ' + inputValue.substring(end);
+            setInputValue(newValue);
+            onContentChange(newValue);
+            requestAnimationFrame(() => {
+                textarea.selectionStart = textarea.selectionEnd = start + 2;
+            });
+        }
+    }, [inputValue, onContentChange]);
+
+    if (!file) {
         return (
             <div className="empty-state">
                 <div className="empty-state-icon">📝</div>
-                <h5>Code Görünümü</h5>
-                <p className="text-muted">JSON verisi yüklendiğinde kod görünümü burada gösterilecek</p>
+                <h5>Code Editör</h5>
+                <p className="text-muted">Sol panelden bir dosya seçerek düzenlemeye başlayın</p>
+            </div>
+        );
+    }
+
+    if (file.type === 'folder') {
+        return (
+            <div className="empty-state">
+                <div className="empty-state-icon">📁</div>
+                <h5>{file.name}</h5>
+                <p className="text-muted">{file.children?.length || 0} öğe içeriyor</p>
             </div>
         );
     }
 
     return (
-        <div className="code-view">
-            <div className="code-editor">
-                <div className="code-gutter">
-                    {lines.map((_, index) => (
-                        <div key={index} className="line-num">{index + 1}</div>
-                    ))}
+        <div className="code-view code-view-editable">
+            {/* Toolbar */}
+            <div className="code-editor-toolbar">
+                <div className="file-name-display">
+                    <span className="file-icon">📄</span>
+                    <span className="file-name">{file.name}</span>
                 </div>
-                <div className="code-content">
-                    {lines.map((line, index) => (
-                        <div key={index} className="code-line">
-                            {syntaxHighlight(line)}
-                        </div>
-                    ))}
+                <div className="code-editor-actions">
+                    <button className="code-toolbar-btn" onClick={handlePaste} title="Panodan Yapıştır">
+                        <span>📋</span> Yapıştır
+                    </button>
+                    <button className="code-toolbar-btn primary" onClick={handleFormat} title="Format & Görüntüle">
+                        <span>✨</span> Format
+                    </button>
+                    <button className="code-toolbar-btn" onClick={handleMinify} title="Minify (Sıkıştır)">
+                        <span>📦</span> Minify
+                    </button>
+                    <button className="code-toolbar-btn" onClick={handleCopy} title="Kopyala">
+                        <span>📄</span> Kopyala
+                    </button>
+                    <button className="code-toolbar-btn danger" onClick={handleClear} title="Temizle">
+                        <span>🗑️</span> Temizle
+                    </button>
                 </div>
             </div>
+
+            {/* Simple Editor */}
+            <div className="code-editor-container">
+                <div className="code-gutter" ref={gutterRef}>
+                    {Array.from({ length: lineCount }, (_, i) => (
+                        <div key={i} className="line-num">{i + 1}</div>
+                    ))}
+                </div>
+                <textarea
+                    ref={textareaRef}
+                    className="code-simple-textarea"
+                    value={inputValue}
+                    onChange={handleChange}
+                    onScroll={handleScroll}
+                    onKeyDown={handleKeyDown}
+                    spellCheck={false}
+                    placeholder={`JSON verisi buraya yazın...\n\n{\n  "name": "Test",\n  "version": "1.0"\n}`}
+                />
+            </div>
+
+            {/* Error bar */}
+            {error && (
+                <div className="code-editor-error">
+                    ⚠️ {error}
+                </div>
+            )}
         </div>
     );
 };

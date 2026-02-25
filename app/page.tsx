@@ -8,7 +8,6 @@ import FlowView from '../components/FlowView';
 import QueryView from '../components/QueryView';
 import CollectionToolbar from '../components/CollectionToolbar';
 import CollectionExplorer from '../components/CollectionExplorer';
-import FileEditor from '../components/FileEditor';
 import ThemeToggle from '../components/ThemeToggle';
 import useCollections from '../hooks/useCollections';
 import useTheme from '../hooks/useTheme';
@@ -49,6 +48,12 @@ export default function Home() {
     }
   }, [selectedId, updateFileContent]);
 
+  // Auto-switch to code tab when a file is selected
+  const handleFileSelect = useCallback((id: string) => {
+    setSelectedId(id);
+    setActiveTab('code');
+  }, [setSelectedId]);
+
   const handleDataChange = useCallback((newData: unknown) => {
     setParsedJson(newData);
     if (selectedId) {
@@ -68,7 +73,13 @@ export default function Home() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'code':
-        return <CodeView data={parsedJson} />;
+        return (
+          <CodeView
+            file={selectedItem}
+            onContentChange={handleContentChange}
+            onJsonParse={handleJsonParse}
+          />
+        );
       case 'tree':
         return <TreeView data={parsedJson} onDataChange={handleDataChange} />;
       case 'flow':
@@ -138,7 +149,7 @@ export default function Home() {
                 <CollectionExplorer
                   collections={collections}
                   selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  onSelect={handleFileSelect}
                   onToggle={toggleFolder}
                   onRename={renameItem}
                   onDelete={deleteItem}
@@ -147,15 +158,6 @@ export default function Home() {
                   onCreateFolder={handleCreateFolder}
                   onExpandToItem={expandToItem}
                   onSearch={searchCollections}
-                />
-              </div>
-
-              {/* File Editor */}
-              <div className="file-editor-wrapper">
-                <FileEditor
-                  file={selectedItem}
-                  onContentChange={handleContentChange}
-                  onJsonParse={handleJsonParse}
                 />
               </div>
             </div>

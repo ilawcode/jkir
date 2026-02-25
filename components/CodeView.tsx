@@ -1,44 +1,64 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { JkirCollection } from '../hooks/useCollections';
 
 interface CodeViewProps {
-    data: unknown;
+    file: JkirCollection | null;
+    onContentChange: (content: string) => void;
     onJsonParse: (data: unknown) => void;
 }
 
-const CodeView: React.FC<CodeViewProps> = ({ data, onJsonParse }) => {
+const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse }) => {
     const [inputValue, setInputValue] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const gutterRef = useRef<HTMLDivElement>(null);
 
-    // Sync from external data changes (e.g. TreeView edits)
+    // Load content when file changes
     useEffect(() => {
-        if (data !== null && data !== undefined) {
-            const formatted = JSON.stringify(data, null, 2);
-            if (formatted !== inputValue) {
-                setInputValue(formatted);
-                setError(null);
+        if (file && file.type === 'file') {
+            const content = file.content || '{}';
+            setInputValue(content);
+            setError(null);
+
+            try {
+                const parsed = JSON.parse(content);
+                onJsonParse(parsed);
+            } catch {
+                onJsonParse(null);
             }
+        } else {
+            setInputValue('');
+            setError(null);
+            onJsonParse(null);
         }
-    }, [data]);
+    }, [file?.id]);
+
+    // Sync scroll between textarea and gutter
+    const handleScroll = useCallback(() => {
+        if (textareaRef.current && gutterRef.current) {
+            gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+        }
+    }, []);
+
+    const lineCount = useMemo(() => {
+        return inputValue.split('\n').length;
+    }, [inputValue]);
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
         setInputValue(value);
         setError(null);
+        onContentChange(value);
 
-        // Auto-parse on change
-        if (!value.trim()) {
-            onJsonParse(null);
-            return;
-        }
         try {
             const parsed = JSON.parse(value);
             onJsonParse(parsed);
         } catch {
-            // Don't clear parsed data on invalid intermediate edits
+            // Don't set error while typing
         }
-    }, [onJsonParse]);
+    }, [onContentChange, onJsonParse]);
 
     const handleFormat = useCallback(() => {
         if (!inputValue.trim()) {
@@ -53,12 +73,39 @@ const CodeView: React.FC<CodeViewProps> = ({ data, onJsonParse }) => {
             setInputValue(formatted);
             setError(null);
             onJsonParse(parsed);
+            onContentChange(formatted);
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'Bilinmeyen hata';
             setError(`Geçersiz JSON: ${errorMessage}`);
             onJsonParse(null);
         }
-    }, [inputValue, onJsonParse]);
+    }, [inputValue, onJsonParse, onContentChange]);
+
+    const handleClear = useCallback(() => {
+        setInputValue('');
+        setError(null);
+        onJsonParse(null);
+        onContentChange('');
+    }, [onJsonParse, onContentChange]);
+
+    const handlePaste = useCallback(async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            setInputValue(text);
+            setError(null);
+            onContentChange(text);
+
+            try {
+                const parsed = JSON.parse(text);
+                onJsonParse(parsed);
+            } catch {
+                // pasted content may not be valid JSON yet
+            }
+        } catch (e) {
+            console.error('Clipboard access denied:', e);
+            setError('Pano erişimi reddedildi. Lütfen manuel olarak yapıştırın.');
+        }
+    }, [onContentChange, onJsonParse]);
 
     const handleMinify = useCallback(() => {
         if (!inputValue.trim()) {
@@ -71,28 +118,12 @@ const CodeView: React.FC<CodeViewProps> = ({ data, onJsonParse }) => {
             const minified = JSON.stringify(parsed);
             setInputValue(minified);
             setError(null);
+            onContentChange(minified);
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'Bilinmeyen hata';
             setError(`Geçersiz JSON: ${errorMessage}`);
         }
-    }, [inputValue]);
-
-    const handlePaste = useCallback(async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            setInputValue(text);
-            setError(null);
-            try {
-                const parsed = JSON.parse(text);
-                onJsonParse(parsed);
-            } catch {
-                // pasted text may not be valid JSON yet
-            }
-        } catch (e) {
-            console.error('Clipboard access denied:', e);
-            setError('Pano erişimi reddedildi. Lütfen manuel olarak yapıştırın.');
-        }
-    }, [onJsonParse]);
+    }, [inputValue, onContentChange]);
 
     const handleCopy = useCallback(async () => {
         try {
@@ -102,60 +133,93 @@ const CodeView: React.FC<CodeViewProps> = ({ data, onJsonParse }) => {
         }
     }, [inputValue]);
 
-    const handleClear = useCallback(() => {
-        setInputValue('');
-        setError(null);
-        onJsonParse(null);
-    }, [onJsonParse]);
+    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const textarea = e.currentTarget;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const newValue = inputValue.substring(0, start) + '  ' + inputValue.substring(end);
+            setInputValue(newValue);
+            onContentChange(newValue);
+            requestAnimationFrame(() => {
+                textarea.selectionStart = textarea.selectionEnd = start + 2;
+            });
+        }
+    }, [inputValue, onContentChange]);
+
+    if (!file) {
+        return (
+            <div className="empty-state">
+                <div className="empty-state-icon">📝</div>
+                <h5>Code Editör</h5>
+                <p className="text-muted">Sol panelden bir dosya seçerek düzenlemeye başlayın</p>
+            </div>
+        );
+    }
+
+    if (file.type === 'folder') {
+        return (
+            <div className="empty-state">
+                <div className="empty-state-icon">📁</div>
+                <h5>{file.name}</h5>
+                <p className="text-muted">{file.children?.length || 0} öğe içeriyor</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="code-view-editor h-100 d-flex flex-column">
+        <div className="code-view code-view-editable">
             {/* Toolbar */}
-            <div className="tab-navigation d-flex align-items-center">
-                <button className="tab-btn" onClick={handlePaste} title="Panodan Yapıştır">
-                    <span className="tab-icon">📋</span>
-                    <span className="tab-label">Yapıştır</span>
-                </button>
-                <button className="tab-btn active" onClick={handleFormat} title="Format & Görüntüle">
-                    <span className="tab-icon">✨</span>
-                    <span className="tab-label">Format</span>
-                </button>
-                <button className="tab-btn" onClick={handleMinify} title="Minify (Sıkıştır)">
-                    <span className="tab-icon">📦</span>
-                    <span className="tab-label">Minify</span>
-                </button>
-                <button className="tab-btn" onClick={handleCopy} title="Kopyala">
-                    <span className="tab-icon">📄</span>
-                    <span className="tab-label">Kopyala</span>
-                </button>
-                <button className="tab-btn ms-auto text-danger" onClick={handleClear} title="Temizle">
-                    <span className="tab-icon">🗑️</span>
-                    <span className="tab-label">Temizle</span>
-                </button>
+            <div className="code-editor-toolbar">
+                <div className="file-name-display">
+                    <span className="file-icon">📄</span>
+                    <span className="file-name">{file.name}</span>
+                </div>
+                <div className="code-editor-actions">
+                    <button className="code-toolbar-btn" onClick={handlePaste} title="Panodan Yapıştır">
+                        <span>📋</span> Yapıştır
+                    </button>
+                    <button className="code-toolbar-btn primary" onClick={handleFormat} title="Format & Görüntüle">
+                        <span>✨</span> Format
+                    </button>
+                    <button className="code-toolbar-btn" onClick={handleMinify} title="Minify (Sıkıştır)">
+                        <span>📦</span> Minify
+                    </button>
+                    <button className="code-toolbar-btn" onClick={handleCopy} title="Kopyala">
+                        <span>📄</span> Kopyala
+                    </button>
+                    <button className="code-toolbar-btn danger" onClick={handleClear} title="Temizle">
+                        <span>🗑️</span> Temizle
+                    </button>
+                </div>
             </div>
 
-            {/* Editor Area */}
-            <div className="flex-grow-1 p-0 position-relative d-flex flex-column">
+            {/* Simple Editor */}
+            <div className="code-editor-container">
+                <div className="code-gutter" ref={gutterRef}>
+                    {Array.from({ length: lineCount }, (_, i) => (
+                        <div key={i} className="line-num">{i + 1}</div>
+                    ))}
+                </div>
                 <textarea
-                    className="form-control json-textarea-clean flex-grow-1 border-0"
-                    placeholder={`JSON verisi buraya yapıştırın...
-
-Örnek:
-{
-  "name": "API Test",
-  "version": "1.0.0"
-}`}
+                    ref={textareaRef}
+                    className="code-simple-textarea"
                     value={inputValue}
                     onChange={handleChange}
+                    onScroll={handleScroll}
+                    onKeyDown={handleKeyDown}
                     spellCheck={false}
+                    placeholder={`JSON verisi buraya yazın...\n\n{\n  "name": "Test",\n  "version": "1.0"\n}`}
                 />
-
-                {error && (
-                    <div className="error-message position-absolute bottom-0 start-0 w-100 p-2 bg-danger text-white bg-opacity-75" style={{ fontSize: '12px' }}>
-                        ⚠️ {error}
-                    </div>
-                )}
             </div>
+
+            {/* Error bar */}
+            {error && (
+                <div className="code-editor-error">
+                    ⚠️ {error}
+                </div>
+            )}
         </div>
     );
 };

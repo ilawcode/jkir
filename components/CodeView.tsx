@@ -1,7 +1,16 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { JkirCollection } from '../hooks/useCollections';
+import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, placeholder as cmPlaceholder } from '@codemirror/view';
+import { EditorState, Compartment } from '@codemirror/state';
+import { json, jsonParseLinter } from '@codemirror/lang-json';
+import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { syntaxHighlighting, defaultHighlightStyle, indentOnInput, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language';
+import { linter, lintGutter } from '@codemirror/lint';
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 
 interface CodeViewProps {
     file: JkirCollection | null;
@@ -9,68 +18,232 @@ interface CodeViewProps {
     onJsonParse: (data: unknown) => void;
 }
 
+// Custom light theme
+const lightTheme = EditorView.theme({
+    '&': {
+        height: '100%',
+        fontSize: '13px',
+        fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace",
+    },
+    '.cm-content': {
+        caretColor: '#1976d2',
+        padding: '8px 0',
+    },
+    '.cm-cursor': {
+        borderLeftColor: '#1976d2',
+        borderLeftWidth: '2px',
+    },
+    '.cm-gutters': {
+        background: '#f5f5f5',
+        borderRight: '1px solid #e0e0e0',
+        color: '#999',
+    },
+    '.cm-activeLineGutter': {
+        background: '#e3f2fd',
+        color: '#1976d2',
+    },
+    '.cm-activeLine': {
+        background: '#f5f9ff',
+    },
+    '.cm-selectionMatch': {
+        background: '#b3d4fc',
+    },
+    '.cm-matchingBracket': {
+        background: '#c8e6c9',
+        outline: '1px solid #81c784',
+    },
+    '.cm-foldGutter .cm-gutterElement': {
+        cursor: 'pointer',
+        color: '#999',
+        fontSize: '12px',
+    },
+    '.cm-tooltip': {
+        background: '#ffffff',
+        border: '1px solid #e0e0e0',
+        borderRadius: '6px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    },
+    '.cm-tooltip-autocomplete': {
+        '& > ul > li': {
+            padding: '4px 8px',
+        },
+        '& > ul > li[aria-selected]': {
+            background: '#e3f2fd',
+            color: '#1976d2',
+        },
+    },
+    '.cm-diagnostic-error': {
+        borderLeft: '3px solid #f44336',
+    },
+    '.cm-diagnostic-warning': {
+        borderLeft: '3px solid #ff9800',
+    },
+    '.cm-panels': {
+        background: '#f5f5f5',
+        borderTop: '1px solid #e0e0e0',
+    },
+    '.cm-search': {
+        background: '#f5f5f5',
+    },
+});
+
+const darkThemeCompartment = new Compartment();
+
 const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse }) => {
-    const [inputValue, setInputValue] = useState('');
     const [error, setError] = useState<string | null>(null);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const gutterRef = useRef<HTMLDivElement>(null);
+    const editorContainerRef = useRef<HTMLDivElement>(null);
+    const editorViewRef = useRef<EditorView | null>(null);
+    const currentFileIdRef = useRef<string | null>(null);
+    const [isDark, setIsDark] = useState(false);
 
-    // Load content when file changes
+    // Detect theme changes
     useEffect(() => {
-        if (file && file.type === 'file') {
-            const content = file.content || '{}';
-            setInputValue(content);
-            setError(null);
+        const checkTheme = () => {
+            const hasDark = document.documentElement.classList.contains('dark-theme') ||
+                document.body.classList.contains('dark-theme');
+            setIsDark(hasDark);
+        };
 
-            try {
-                const parsed = JSON.parse(content);
-                onJsonParse(parsed);
-            } catch {
-                onJsonParse(null);
-            }
-        } else {
-            setInputValue('');
-            setError(null);
-            onJsonParse(null);
-        }
-    }, [file?.id]);
+        checkTheme();
 
-    // Sync scroll between textarea and gutter
-    const handleScroll = useCallback(() => {
-        if (textareaRef.current && gutterRef.current) {
-            gutterRef.current.scrollTop = textareaRef.current.scrollTop;
-        }
+        const observer = new MutationObserver(checkTheme);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+        return () => observer.disconnect();
     }, []);
 
-    const lineCount = useMemo(() => {
-        return inputValue.split('\n').length;
-    }, [inputValue]);
-
-    const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const value = e.target.value;
-        setInputValue(value);
-        setError(null);
-        onContentChange(value);
-
-        try {
-            const parsed = JSON.parse(value);
-            onJsonParse(parsed);
-        } catch {
-            // Don't set error while typing
+    // Update editor theme
+    useEffect(() => {
+        if (editorViewRef.current) {
+            editorViewRef.current.dispatch({
+                effects: darkThemeCompartment.reconfigure(isDark ? oneDark : lightTheme),
+            });
         }
-    }, [onContentChange, onJsonParse]);
+    }, [isDark]);
+
+    // Initialize/recreate editor when file changes
+    useEffect(() => {
+        if (!file || file.type !== 'file' || !editorContainerRef.current) return;
+
+        // If same file, update content if needed
+        if (editorViewRef.current && currentFileIdRef.current === file.id) {
+            const currentContent = editorViewRef.current.state.doc.toString();
+            if (currentContent !== (file.content || '{}')) {
+                editorViewRef.current.dispatch({
+                    changes: {
+                        from: 0,
+                        to: currentContent.length,
+                        insert: file.content || '{}',
+                    },
+                });
+            }
+            return;
+        }
+
+        // Destroy old editor
+        if (editorViewRef.current) {
+            editorViewRef.current.destroy();
+            editorViewRef.current = null;
+        }
+
+        currentFileIdRef.current = file.id;
+        const content = file.content || '{}';
+
+        // Parse initial content
+        try {
+            const parsed = JSON.parse(content);
+            onJsonParse(parsed);
+            setError(null);
+        } catch {
+            onJsonParse(null);
+        }
+
+        const updateListener = EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+                const value = update.state.doc.toString();
+                onContentChange(value);
+
+                try {
+                    const parsed = JSON.parse(value);
+                    onJsonParse(parsed);
+                    setError(null);
+                } catch {
+                    // Don't set error while typing - linter handles it
+                }
+            }
+        });
+
+        const state = EditorState.create({
+            doc: content,
+            extensions: [
+                lineNumbers(),
+                highlightActiveLineGutter(),
+                highlightActiveLine(),
+                history(),
+                foldGutter(),
+                indentOnInput(),
+                bracketMatching(),
+                closeBrackets(),
+                autocompletion(),
+                highlightSelectionMatches(),
+                json(),
+                linter(jsonParseLinter()),
+                lintGutter(),
+                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+                darkThemeCompartment.of(isDark ? oneDark : lightTheme),
+                cmPlaceholder('JSON verisi buraya yazın...\n\n{\n  "name": "Test",\n  "version": "1.0"\n}'),
+                keymap.of([
+                    ...defaultKeymap,
+                    ...historyKeymap,
+                    ...closeBracketsKeymap,
+                    ...foldKeymap,
+                    ...searchKeymap,
+                    indentWithTab,
+                ]),
+                updateListener,
+                EditorView.lineWrapping,
+            ],
+        });
+
+        const view = new EditorView({
+            state,
+            parent: editorContainerRef.current,
+        });
+
+        editorViewRef.current = view;
+
+        return () => {
+            // Cleanup on unmount only
+        };
+    }, [file?.id]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (editorViewRef.current) {
+                editorViewRef.current.destroy();
+                editorViewRef.current = null;
+            }
+        };
+    }, []);
 
     const handleFormat = useCallback(() => {
-        if (!inputValue.trim()) {
+        if (!editorViewRef.current) return;
+        const value = editorViewRef.current.state.doc.toString();
+
+        if (!value.trim()) {
             setError('Lütfen JSON verisi girin');
             onJsonParse(null);
             return;
         }
 
         try {
-            const parsed = JSON.parse(inputValue);
+            const parsed = JSON.parse(value);
             const formatted = JSON.stringify(parsed, null, 2);
-            setInputValue(formatted);
+            editorViewRef.current.dispatch({
+                changes: { from: 0, to: value.length, insert: formatted },
+            });
             setError(null);
             onJsonParse(parsed);
             onContentChange(formatted);
@@ -79,10 +252,14 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
             setError(`Geçersiz JSON: ${errorMessage}`);
             onJsonParse(null);
         }
-    }, [inputValue, onJsonParse, onContentChange]);
+    }, [onJsonParse, onContentChange]);
 
     const handleClear = useCallback(() => {
-        setInputValue('');
+        if (!editorViewRef.current) return;
+        const len = editorViewRef.current.state.doc.length;
+        editorViewRef.current.dispatch({
+            changes: { from: 0, to: len, insert: '' },
+        });
         setError(null);
         onJsonParse(null);
         onContentChange('');
@@ -91,7 +268,11 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
     const handlePaste = useCallback(async () => {
         try {
             const text = await navigator.clipboard.readText();
-            setInputValue(text);
+            if (!editorViewRef.current) return;
+            const len = editorViewRef.current.state.doc.length;
+            editorViewRef.current.dispatch({
+                changes: { from: 0, to: len, insert: text },
+            });
             setError(null);
             onContentChange(text);
 
@@ -108,45 +289,37 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
     }, [onContentChange, onJsonParse]);
 
     const handleMinify = useCallback(() => {
-        if (!inputValue.trim()) {
+        if (!editorViewRef.current) return;
+        const value = editorViewRef.current.state.doc.toString();
+
+        if (!value.trim()) {
             setError('Lütfen JSON verisi girin');
             return;
         }
 
         try {
-            const parsed = JSON.parse(inputValue);
+            const parsed = JSON.parse(value);
             const minified = JSON.stringify(parsed);
-            setInputValue(minified);
+            editorViewRef.current.dispatch({
+                changes: { from: 0, to: value.length, insert: minified },
+            });
             setError(null);
             onContentChange(minified);
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'Bilinmeyen hata';
             setError(`Geçersiz JSON: ${errorMessage}`);
         }
-    }, [inputValue, onContentChange]);
+    }, [onContentChange]);
 
     const handleCopy = useCallback(async () => {
+        if (!editorViewRef.current) return;
         try {
-            await navigator.clipboard.writeText(inputValue);
+            const text = editorViewRef.current.state.doc.toString();
+            await navigator.clipboard.writeText(text);
         } catch (e) {
             console.error('Failed to copy:', e);
         }
-    }, [inputValue]);
-
-    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const textarea = e.currentTarget;
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const newValue = inputValue.substring(0, start) + '  ' + inputValue.substring(end);
-            setInputValue(newValue);
-            onContentChange(newValue);
-            requestAnimationFrame(() => {
-                textarea.selectionStart = textarea.selectionEnd = start + 2;
-            });
-        }
-    }, [inputValue, onContentChange]);
+    }, []);
 
     if (!file) {
         return (
@@ -195,24 +368,8 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
                 </div>
             </div>
 
-            {/* Simple Editor */}
-            <div className="code-editor-container">
-                <div className="code-gutter" ref={gutterRef}>
-                    {Array.from({ length: lineCount }, (_, i) => (
-                        <div key={i} className="line-num">{i + 1}</div>
-                    ))}
-                </div>
-                <textarea
-                    ref={textareaRef}
-                    className="code-simple-textarea"
-                    value={inputValue}
-                    onChange={handleChange}
-                    onScroll={handleScroll}
-                    onKeyDown={handleKeyDown}
-                    spellCheck={false}
-                    placeholder={`JSON verisi buraya yazın...\n\n{\n  "name": "Test",\n  "version": "1.0"\n}`}
-                />
-            </div>
+            {/* CodeMirror Editor */}
+            <div className="code-editor-container codemirror-wrapper" ref={editorContainerRef} />
 
             {/* Error bar */}
             {error && (

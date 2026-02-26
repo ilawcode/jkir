@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import TabNavigation, { TabType } from '../components/TabNavigation';
 import TreeView from '../components/TreeView';
 import CodeView from '../components/CodeView';
@@ -11,6 +11,10 @@ import CollectionExplorer from '../components/CollectionExplorer';
 import ThemeToggle from '../components/ThemeToggle';
 import useCollections from '../hooks/useCollections';
 import useTheme from '../hooks/useTheme';
+
+const MIN_PANEL_WIDTH = 180;
+const DEFAULT_PANEL_WIDTH = 280;
+const SNAP_THRESHOLD = 60;
 
 export default function Home() {
   const {
@@ -36,7 +40,12 @@ export default function Home() {
 
   const [parsedJson, setParsedJson] = useState<unknown>(null);
   const [activeTab, setActiveTab] = useState<TabType>('tree');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_PANEL_WIDTH);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastWidthRef = useRef(DEFAULT_PANEL_WIDTH);
 
   const handleJsonParse = useCallback((data: unknown) => {
     setParsedJson(data);
@@ -48,7 +57,6 @@ export default function Home() {
     }
   }, [selectedId, updateFileContent]);
 
-  // Auto-switch to code tab when a file is selected
   const handleFileSelect = useCallback((id: string) => {
     setSelectedId(id);
     setActiveTab('code');
@@ -69,6 +77,60 @@ export default function Home() {
   const handleCreateFile = useCallback((name: string, parentId?: string) => {
     createFile(name, parentId);
   }, [createFile]);
+
+  // Drag resize logic
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newWidth = e.clientX - containerRect.left;
+
+      if (newWidth < SNAP_THRESHOLD) {
+        setIsCollapsed(true);
+        setSidebarWidth(0);
+      } else {
+        setIsCollapsed(false);
+        const clampedWidth = Math.max(MIN_PANEL_WIDTH, Math.min(newWidth, containerRect.width * 0.5));
+        setSidebarWidth(clampedWidth);
+        lastWidthRef.current = clampedWidth;
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging]);
+
+  // Double click to toggle
+  const handleDoubleClick = useCallback(() => {
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      setSidebarWidth(lastWidthRef.current || DEFAULT_PANEL_WIDTH);
+    } else {
+      lastWidthRef.current = sidebarWidth;
+      setIsCollapsed(true);
+      setSidebarWidth(0);
+    }
+  }, [isCollapsed, sidebarWidth]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -121,55 +183,58 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content - Split Screen */}
-      <div className="container-fluid flex-grow-1 p-0 split-container position-relative">
-        {/* Toggle Sidebar Button */}
-        <button
-          className={`sidebar-toggle ${!isSidebarOpen ? 'active' : ''}`}
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          title={isSidebarOpen ? "Paneli Gizle" : "Paneli Göster"}
+      {/* Main Content - Resizable Split */}
+      <div className="split-layout" ref={containerRef}>
+        {/* Left Panel */}
+        <div
+          className="split-left-panel"
+          style={{ width: isCollapsed ? 0 : sidebarWidth, minWidth: isCollapsed ? 0 : MIN_PANEL_WIDTH }}
         >
-          {isSidebarOpen ? '◀' : '▶'}
-        </button>
-
-        <div className="row g-0 h-100 flex-nowrap">
-          {/* Left Panel - Collection Explorer & File Editor */}
-          <div className={`col-md-5 split-panel left-panel ${!isSidebarOpen ? 'collapsed' : ''}`}>
-            <div className="left-panel-container">
-              {/* Collection Toolbar */}
-              <CollectionToolbar
-                onCreateFolder={(name) => handleCreateFolder(name)}
-                onCreateFile={(name) => handleCreateFile(name)}
-                onExport={exportCollections}
-                onImport={importCollections}
+          <div className="left-panel-container">
+            <CollectionToolbar
+              onCreateFolder={(name) => handleCreateFolder(name)}
+              onCreateFile={(name) => handleCreateFile(name)}
+              onExport={exportCollections}
+              onImport={importCollections}
+            />
+            <div className="collection-explorer-wrapper">
+              <CollectionExplorer
+                collections={collections}
+                selectedId={selectedId}
+                onSelect={handleFileSelect}
+                onToggle={toggleFolder}
+                onRename={renameItem}
+                onDelete={deleteItem}
+                onDuplicate={duplicateItem}
+                onCreateFile={handleCreateFile}
+                onCreateFolder={handleCreateFolder}
+                onExpandToItem={expandToItem}
+                onSearch={searchCollections}
               />
-
-              {/* Collection Explorer */}
-              <div className="collection-explorer-wrapper">
-                <CollectionExplorer
-                  collections={collections}
-                  selectedId={selectedId}
-                  onSelect={handleFileSelect}
-                  onToggle={toggleFolder}
-                  onRename={renameItem}
-                  onDelete={deleteItem}
-                  onDuplicate={duplicateItem}
-                  onCreateFile={handleCreateFile}
-                  onCreateFolder={handleCreateFolder}
-                  onExpandToItem={expandToItem}
-                  onSearch={searchCollections}
-                />
-              </div>
             </div>
           </div>
+        </div>
 
-          {/* Right Panel - Tabbed Views */}
-          <div className={`split-panel right-panel p-0 ${!isSidebarOpen ? 'expanded col-md-12' : 'col-md-7'}`}>
-            <div className="view-panel h-100 d-flex flex-column">
-              <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-              <div className="tab-content flex-grow-1 overflow-auto">
-                {renderTabContent()}
-              </div>
+        {/* Resizer Handle */}
+        <div
+          className={`split-resizer ${isDragging ? 'dragging' : ''} ${isCollapsed ? 'collapsed' : ''}`}
+          onMouseDown={handleMouseDown}
+          onDoubleClick={handleDoubleClick}
+          title="Sürükle: boyutlandır · Çift tıkla: aç/kapat"
+        >
+          <div className="resizer-grip">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+
+        {/* Right Panel */}
+        <div className="split-right-panel">
+          <div className="view-panel h-100 d-flex flex-column">
+            <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+            <div className="tab-content flex-grow-1 overflow-auto">
+              {renderTabContent()}
             </div>
           </div>
         </div>

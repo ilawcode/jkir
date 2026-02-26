@@ -122,7 +122,7 @@
 
 .theme-toggle-buttons {
   display: flex;
-  background: rgba(0,0,0,0.1);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   padding: 2px;
   gap: 2px;
@@ -143,20 +143,20 @@
 }
 
 .theme-btn:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .theme-btn.active {
   background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .dark-theme .theme-toggle-buttons {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .dark-theme .theme-btn:hover {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .dark-theme .theme-btn.active {
@@ -256,6 +256,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 16px;
 }
 
 /* Tree View Toolbar */
@@ -326,7 +327,7 @@
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   max-height: 300px;
   overflow-y: auto;
   z-index: 100;
@@ -386,7 +387,7 @@
 }
 
 /* Tree Node Highlight */
-.tree-node.highlighted > .tree-node-content {
+.tree-node.highlighted>.tree-node-content {
   background: rgba(255, 193, 7, 0.4);
   border-radius: 4px;
   box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.6), 0 0 12px rgba(255, 193, 7, 0.4);
@@ -396,10 +397,13 @@
 }
 
 @keyframes tree-highlight-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     background: rgba(255, 193, 7, 0.4);
     box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.6), 0 0 12px rgba(255, 193, 7, 0.4);
   }
+
   50% {
     background: rgba(255, 193, 7, 0.7);
     box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.8), 0 0 20px rgba(255, 193, 7, 0.6);
@@ -1075,9 +1079,11 @@
 }
 
 .tab-content {
-  padding: 16px;
+  padding: 0;
   background: #ffffff;
   min-height: 300px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ========================================
@@ -1096,6 +1102,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .code-editor-toolbar {
@@ -1179,6 +1187,37 @@
   background: #fafafa;
 }
 
+.codemirror-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.codemirror-wrapper .cm-editor {
+  height: 100%;
+  outline: none;
+}
+
+.codemirror-wrapper .cm-editor.cm-focused {
+  outline: none;
+}
+
+.codemirror-wrapper .cm-scroller {
+  overflow: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+.codemirror-wrapper .cm-scroller::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari */
+}
+
 .code-gutter {
   background: #f0f0f0;
   padding: 12px 0;
@@ -1227,7 +1266,7 @@
 /* Dark theme for editable code editor */
 .dark-theme .code-editor-toolbar {
   background: #2d3748;
-  border-bottom-color: #4a5568;
+  border-color: #4a5568;
 }
 
 .dark-theme .code-editor-toolbar .file-name {
@@ -1267,6 +1306,10 @@
   background: #1a202c;
 }
 
+.dark-theme .codemirror-wrapper {
+  border-color: #4a5568;
+}
+
 .dark-theme .code-gutter {
   background: #2d333b;
   border-right-color: #444d56;
@@ -1290,7 +1333,7 @@
    ======================================== */
 
 .flow-view {
-  padding: 16px 0;
+  padding: 16px;
 }
 
 .flow-legend {
@@ -1334,7 +1377,7 @@
   flex: 1;
   overflow: auto;
   background: #fafafa;
-  background-image: 
+  background-image:
     radial-gradient(circle, #ddd 1px, transparent 1px);
   background-size: 20px 20px;
   position: relative;
@@ -1497,6 +1540,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 16px;
 }
 
 .query-search-bar {
@@ -1688,80 +1732,123 @@
 }
 
 /* ========================================
-   COLLAPSIBLE SIDEBAR
+   RESIZABLE SPLIT LAYOUT
    ======================================== */
 
-.split-container {
+.split-layout {
+  display: flex;
+  flex: 1;
   overflow: hidden;
   position: relative;
 }
 
-.split-panel {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+.split-left-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease;
+  background: #ffffff;
+  flex-shrink: 0;
 }
 
-.left-panel {
-  border-right: 1px solid #e0e0e0;
-}
-
-.left-panel.collapsed {
-  flex: 0 0 0 !important;
-  width: 0 !important;
-  min-width: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-  opacity: 0;
+.split-left-panel .left-panel-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   overflow: hidden;
 }
 
-.right-panel.expanded {
-  flex: 0 0 100% !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: 0 !important;
+.split-right-panel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.sidebar-toggle {
-  position: absolute;
-  left: 41.666667%;
-  /* Match col-md-5 width */
-  top: 50%;
-  transform: translateY(-50%) translateX(-1px);
-  z-index: 1000;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-left: none;
-  width: 24px;
-  height: 48px;
+/* Resizer Handle */
+.split-resizer {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: #e8e8e8;
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
-  cursor: pointer;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  color: #666666;
+  position: relative;
+  transition: background 0.15s ease, width 0.15s ease;
+  z-index: 10;
 }
 
-.sidebar-toggle:hover {
-  background: #f5f5f5;
-  color: #1976d2;
-  width: 28px;
+.split-resizer:hover {
+  background: #d0d0d0;
+  width: 8px;
 }
 
-.left-panel:not(.collapsed)+.right-panel .sidebar-toggle {
-  left: 41.666667%;
-  /* 5 cols */
+.split-resizer.dragging {
+  background: linear-gradient(180deg, #667eea, #764ba2);
+  width: 8px;
+  border-color: transparent;
 }
 
-.sidebar-toggle.active {
-  left: 0;
-  border-left: 1px solid #e0e0e0;
-  border-radius: 0 8px 8px 0;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+.split-resizer.collapsed {
+  border-left: none;
 }
+
+/* Grip dots */
+.resizer-grip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+
+.resizer-grip span {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #aaa;
+  transition: background 0.15s ease;
+}
+
+.split-resizer:hover .resizer-grip span {
+  background: #666;
+}
+
+.split-resizer.dragging .resizer-grip span {
+  background: #fff;
+}
+
+/* Dark theme */
+.dark-theme .split-left-panel {
+  background: #1a202c;
+}
+
+.dark-theme .split-resizer {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.dark-theme .split-resizer:hover {
+  background: #3d4852;
+}
+
+.dark-theme .split-resizer.dragging {
+  background: linear-gradient(180deg, #667eea, #764ba2);
+  border-color: transparent;
+}
+
+.dark-theme .resizer-grip span {
+  background: #636e7b;
+}
+
+.dark-theme .split-resizer:hover .resizer-grip span {
+  background: #a0aec0;
+}
+
 /* ========================================
    MODAL STYLES
    ======================================== */
@@ -1960,7 +2047,7 @@
   background: white;
   border: 1px solid #ddd;
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   max-height: 250px;
   overflow-y: auto;
   z-index: 100;
@@ -2110,9 +2197,12 @@
 }
 
 @keyframes highlight-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     background-color: rgba(255, 193, 7, 0.3);
   }
+
   50% {
     background-color: rgba(255, 193, 7, 0.5);
   }
@@ -2183,6 +2273,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -2287,6 +2378,7 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -3070,10 +3162,14 @@
 }
 
 @keyframes nodeHighlight {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   }
-  20%, 80% {
+
+  20%,
+  80% {
     box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.5), 0 4px 12px rgba(102, 126, 234, 0.3);
     transform: scale(1.02);
   }
@@ -3155,7 +3251,7 @@
 
 .dark-theme .flow-diagram-container {
   background: #1a202c;
-  background-image: 
+  background-image:
     radial-gradient(circle, #3d4852 1px, transparent 1px);
 }
 

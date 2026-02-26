@@ -74,7 +74,6 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
             title="Yeni Klasör"
           >
             <span className="toolbar-icon">📁</span>
-            <span className="toolbar-text">Klasör</span>
           </button>
           <button
             className="toolbar-action-btn"
@@ -82,7 +81,6 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
             title="Yeni Dosya"
           >
             <span className="toolbar-icon">📄</span>
-            <span className="toolbar-text">Dosya</span>
           </button>
         </div>
 
@@ -94,7 +92,6 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
             title="Import"
           >
             <span className="toolbar-icon">📥</span>
-            <span className="toolbar-text">{isImporting ? '...' : 'Import'}</span>
           </button>
           <button
             className="toolbar-action-btn"
@@ -102,7 +99,6 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
             title="Export"
           >
             <span className="toolbar-icon">📤</span>
-            <span className="toolbar-text">Export</span>
           </button>
         </div>
 

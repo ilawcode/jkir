@@ -3,6 +3,8 @@
  * Converts JSON structure to Java 17 POJO/Record classes
  */
 
+import { parseXml } from './xmlParser';
+
 export type PojoStyle = 'record' | 'class' | 'lombok';
 
 interface GeneratedClass {
@@ -65,9 +67,9 @@ const toSingular = (str: string): string => {
 const shouldInferAsObject = (fieldName: string): boolean => {
   const objectSuffixes = ['info', 'data', 'details', 'config', 'settings', 'response', 'request', 'result', 'options', 'params', 'body', 'payload', 'content', 'metadata'];
   const lowerName = fieldName.toLowerCase();
-  return objectSuffixes.some(suffix => lowerName.endsWith(suffix)) || 
-         lowerName.includes('_') || // snake_case usually indicates object
-         /[A-Z]/.test(fieldName); // camelCase usually indicates object
+  return objectSuffixes.some(suffix => lowerName.endsWith(suffix)) ||
+    lowerName.includes('_') || // snake_case usually indicates object
+    /[A-Z]/.test(fieldName); // camelCase usually indicates object
 };
 
 /**
@@ -165,7 +167,7 @@ const generateClass = (className: string, fields: FieldInfo[]): string => {
   const gettersSetters = fields
     .map((f) => {
       const capitalizedName = f.name.charAt(0).toUpperCase() + f.name.slice(1);
-      const getter = f.type === 'Boolean' 
+      const getter = f.type === 'Boolean'
         ? `    public ${f.type} is${capitalizedName}() {\n        return ${f.name};\n    }`
         : `    public ${f.type} get${capitalizedName}() {\n        return ${f.name};\n    }`;
       const setter = `    public void set${capitalizedName}(${f.type} ${f.name}) {\n        this.${f.name} = ${f.name};\n    }`;
@@ -325,7 +327,7 @@ const generateNestedClasses = (
  */
 const getRequiredImports = (classes: GeneratedClass[]): string[] => {
   const imports: Set<string> = new Set();
-  
+
   for (const cls of classes) {
     if (cls.code.includes('List<')) {
       imports.add('import java.util.List;');
@@ -368,7 +370,7 @@ export const generatePojo = (
   // Build final code with imports
   const imports = getRequiredImports(classes);
   const importSection = imports.length > 0 ? imports.join('\n') + '\n\n' : '';
-  
+
   // Reverse to put main class first, then nested classes
   const reversedClasses = [...classes].reverse();
   const allCode = reversedClasses.map((c) => c.code).join('\n\n// ---\n\n');
@@ -390,10 +392,15 @@ export const generatePojosFromFiles = (
 
   for (const file of files) {
     try {
-      const jsonData = JSON.parse(file.content);
+      let jsonData;
+      if (file.name.toLowerCase().endsWith('.xml')) {
+        jsonData = parseXml(file.content);
+      } else {
+        jsonData = JSON.parse(file.content);
+      }
       const className = toPascalCase(file.name);
       const { code } = generatePojo(jsonData, className, style);
-      
+
       results.push({
         fileName: file.name,
         className,
@@ -481,10 +488,15 @@ export const generatePojoFilesFromMultiple = (
 
   for (const file of files) {
     try {
-      const jsonData = JSON.parse(file.content);
+      let jsonData;
+      if (file.name.toLowerCase().endsWith('.xml')) {
+        jsonData = parseXml(file.content);
+      } else {
+        jsonData = JSON.parse(file.content);
+      }
       const className = toPascalCase(file.name);
       const generatedFiles = generatePojoFiles(jsonData, className, file.name, style);
-      
+
       // Add files, avoiding duplicates by class name
       for (const genFile of generatedFiles) {
         if (!processedClassNames.has(genFile.className)) {

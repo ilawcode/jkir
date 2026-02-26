@@ -1333,6 +1333,9 @@
    ======================================== */
 
 .flow-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   padding: 16px;
 }
 
@@ -1949,13 +1952,13 @@
 .toolbar-action-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
+  justify-content: center;
+  padding: 6px 8px;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   color: white;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.15s;
 }

@@ -11,6 +11,7 @@ import CollectionExplorer from '../components/CollectionExplorer';
 import ThemeToggle from '../components/ThemeToggle';
 import useCollections from '../hooks/useCollections';
 import useTheme from '../hooks/useTheme';
+import { objectToXml, formatXml } from '../utils/xmlParser';
 
 const MIN_PANEL_WIDTH = 180;
 const DEFAULT_PANEL_WIDTH = 280;
@@ -64,11 +65,24 @@ export default function Home() {
 
   const handleDataChange = useCallback((newData: unknown) => {
     setParsedJson(newData);
-    if (selectedId) {
-      const formatted = JSON.stringify(newData, null, 2);
-      updateFileContent(selectedId, formatted);
+    if (selectedId && selectedItem) {
+      const isXml = selectedItem.fileType === 'xml' || selectedItem.name.toLowerCase().endsWith('.xml');
+      if (isXml) {
+        try {
+          const xmlStr = objectToXml(newData);
+          const formatted = formatXml(xmlStr);
+          updateFileContent(selectedId, formatted);
+        } catch {
+          // If serialization fails, store as JSON fallback
+          const formatted = JSON.stringify(newData, null, 2);
+          updateFileContent(selectedId, formatted);
+        }
+      } else {
+        const formatted = JSON.stringify(newData, null, 2);
+        updateFileContent(selectedId, formatted);
+      }
     }
-  }, [selectedId, updateFileContent]);
+  }, [selectedId, selectedItem, updateFileContent]);
 
   const handleCreateFolder = useCallback((name: string, parentId?: string) => {
     createFolder(name, parentId);
@@ -171,8 +185,8 @@ export default function Home() {
       {/* Header */}
       <header className="app-header">
         <div className="header-left">
-          <h1>🔍 JSON Görüntüleyici</h1>
-          <p className="header-subtitle">API JSON verilerini kolayca görselleştirin</p>
+          <h1>🔍 Veri Görüntüleyici</h1>
+          <p className="header-subtitle">JSON & XML verilerini kolayca görselleştirin</p>
         </div>
         <div className="header-right">
           <ThemeToggle

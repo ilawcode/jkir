@@ -37,10 +37,10 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
     // Collect all searchable keys from JSON data
     const allKeys = useMemo(() => {
         const keys: SearchResult[] = [];
-        
+
         const traverse = (obj: unknown, path: string[] = []) => {
             if (obj === null || obj === undefined) return;
-            
+
             if (Array.isArray(obj)) {
                 obj.forEach((item, index) => {
                     const newPath = [...path, String(index)];
@@ -65,7 +65,7 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                 });
             }
         };
-        
+
         traverse(data);
         return keys;
     }, [data]);
@@ -74,10 +74,10 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
         setSearchQuery(query);
-        
+
         if (query.trim()) {
             const lowerQuery = query.toLowerCase();
-            const filtered = allKeys.filter(item => 
+            const filtered = allKeys.filter(item =>
                 item.key.toLowerCase().includes(lowerQuery)
             ).slice(0, 20); // Limit results
             setSearchResults(filtered);
@@ -93,15 +93,15 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
         // Expand all nodes first - multiple triggers to ensure all levels expand
         // Each trigger causes one level to expand, so we need enough for deep structures
         const pathDepth = result.path.split('.').length;
-        
+
         // Clear search immediately
         setSearchQuery('');
         setSearchResults([]);
         setShowSearchResults(false);
-        
+
         // Set highlighted path
         setHighlightedPath(result.path);
-        
+
         // Fire multiple expand triggers with delays to ensure cascade expansion works
         // For each level of nesting, we need to trigger expansion
         let triggerCount = 0;
@@ -113,17 +113,17 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
             }
         };
         triggerExpansion();
-        
+
         // Scroll to element after expansion with retry mechanism
         // Use longer timeout and more attempts for deep structures
         const maxWaitTime = Math.max(3000, pathDepth * 500); // At least 3s, more for deep paths
         const startTime = Date.now();
-        
+
         const scrollToElement = () => {
             const element = treeContainerRef.current?.querySelector(
                 `[data-path="${result.path}"]`
             ) as HTMLElement | null;
-            
+
             if (element) {
                 // Get the scrollable container
                 const container = treeContainerRef.current;
@@ -132,13 +132,13 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                     const containerRect = container.getBoundingClientRect();
                     const elementRect = element.getBoundingClientRect();
                     const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - 20;
-                    
+
                     container.scrollTo({
                         top: Math.max(0, scrollTop),
                         behavior: 'smooth'
                     });
                 }
-                
+
                 // Remove highlight after animation
                 setTimeout(() => {
                     setHighlightedPath(null);
@@ -150,7 +150,7 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                 });
             }
         };
-        
+
         // Start trying after initial render delay
         setTimeout(scrollToElement, 150);
     }, []);
@@ -210,9 +210,9 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
         return (
             <div className="empty-state">
                 <div className="empty-state-icon">📋</div>
-                <h5>JSON Görüntüleyici</h5>
+                <h5>Veri Görüntüleyici</h5>
                 <p className="text-muted">
-                    Sol panele JSON yapıştırın ve &quot;Format & Görüntüle&quot; butonuna tıklayın
+                    Sol panele JSON veya XML yapıştırın ve &quot;Format &amp; Görüntüle&quot; butonuna tıklayın
                 </p>
             </div>
         );
@@ -255,7 +255,7 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                             </button>
                         )}
                     </div>
-                    
+
                     {/* Search Results Dropdown */}
                     {showSearchResults && searchResults.length > 0 && (
                         <div ref={searchResultsRef} className="tree-search-results">
@@ -271,7 +271,7 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                             ))}
                         </div>
                     )}
-                    
+
                     {showSearchResults && searchQuery && searchResults.length === 0 && (
                         <div ref={searchResultsRef} className="tree-search-results">
                             <div className="tree-search-no-results">
@@ -302,7 +302,7 @@ const TreeView: React.FC<TreeViewProps> = ({ data, onDataChange }) => {
                 <div className="tree-node">
                     <div className="tree-node-content">
                         <span className="type-icon type-object">{isArray ? '[]' : '{}'}</span>
-                        <span className="json-key">JSON</span>
+                        <span className="json-key">Data</span>
                     </div>
                     <div className="tree-children">
                         {entries.map(([key, val], index) => (

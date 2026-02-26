@@ -98,7 +98,7 @@ const QueryView: React.FC<QueryViewProps> = ({ data }) => {
             <div className="empty-state">
                 <div className="empty-state-icon">🔍</div>
                 <h5>Query Arama</h5>
-                <p className="text-muted">JSON verisi yüklendiğinde arama yapabilirsiniz</p>
+                <p className="text-muted">JSON veya XML verisi yüklendiğinde arama yapabilirsiniz</p>
             </div>
         );
     }
@@ -112,7 +112,7 @@ const QueryView: React.FC<QueryViewProps> = ({ data }) => {
                     <input
                         type="text"
                         className="search-input"
-                        placeholder="JSON içinde ara..."
+                        placeholder="Veri içinde ara..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />

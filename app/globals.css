@@ -3683,3 +3683,40 @@
 .action-btn-primary:hover {
   background: #e78810 !important;
 }
+
+/* File Type Badge */
+.file-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+.file-type-badge.json {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.file-type-badge.xml {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  color: #e65100;
+  border: 1px solid #ffcc80;
+}
+
+.dark-theme .file-type-badge.json {
+  background: linear-gradient(135deg, #1a3a5c, #1e3a6e);
+  color: #64b5f6;
+  border-color: #1e88e5;
+}
+
+.dark-theme .file-type-badge.xml {
+  background: linear-gradient(135deg, #4e2a00, #5d3200);
+  color: #ffb74d;
+  border-color: #f57c00;
+}

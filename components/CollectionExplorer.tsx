@@ -50,7 +50,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     y: 0,
     item: null,
   });
-  
+
   const [renameModal, setRenameModal] = useState<{
     visible: boolean;
     item: JkirCollection | null;
@@ -179,7 +179,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   // Collect all files from a folder recursively
   const collectFilesFromFolder = useCallback((folder: JkirCollection): { name: string; content: string }[] => {
     const files: { name: string; content: string }[] = [];
-    
+
     if (folder.children) {
       for (const child of folder.children) {
         if (child.type === 'file' && child.content) {
@@ -189,7 +189,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
         }
       }
     }
-    
+
     return files;
   }, []);
 
@@ -225,7 +225,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
-    
+
     if (query.trim()) {
       const results = onSearch(query);
       setSearchResults(results);
@@ -239,25 +239,25 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   const handleSearchResultClick = useCallback((item: JkirCollection) => {
     // Expand all parent folders
     onExpandToItem(item.id);
-    
+
     // Select the item
     onSelect(item.id);
-    
+
     // Highlight the item
     setHighlightedId(item.id);
-    
+
     // Clear search
     setSearchQuery('');
     setSearchResults([]);
     setShowSearchResults(false);
-    
+
     // Scroll to item after a small delay to allow expansion
     setTimeout(() => {
       const element = treeRef.current?.querySelector(`[data-item-id="${item.id}"]`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      
+
       // Remove highlight after animation
       setTimeout(() => {
         setHighlightedId(null);
@@ -319,7 +319,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
             onFocus={() => searchQuery && setShowSearchResults(true)}
           />
           {searchQuery && (
-            <button 
+            <button
               className="collection-search-clear"
               onClick={() => {
                 setSearchQuery('');
@@ -331,7 +331,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
             </button>
           )}
         </div>
-        
+
         {/* Search Results Dropdown */}
         {showSearchResults && searchResults.length > 0 && (
           <div ref={searchResultsRef} className="collection-search-results">
@@ -352,7 +352,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
             ))}
           </div>
         )}
-        
+
         {showSearchResults && searchQuery && searchResults.length === 0 && (
           <div ref={searchResultsRef} className="collection-search-results">
             <div className="collection-search-no-results">
@@ -411,10 +411,9 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
       {inputModal.type === 'newFile' && (
         <InputModal
           title="Yeni Dosya"
-          label="Dosya adı:"
-          placeholder="Dosya adını girin"
-          defaultValue="new-file"
-          suffix=".json"
+          label="Dosya adı (.json veya .xml):"
+          placeholder="örn: data.json veya config.xml"
+          defaultValue="new-file.json"
           onSubmit={handleInputModalSubmit}
           onCancel={handleInputModalCancel}
         />
@@ -452,9 +451,9 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
               <button type="button" className="btn-cancel-modal" onClick={handleDeleteCancel}>
                 İptal
               </button>
-              <button 
-                type="button" 
-                className="btn-save-modal" 
+              <button
+                type="button"
+                className="btn-save-modal"
                 style={{ background: '#dc3545' }}
                 onClick={handleDeleteConfirm}
               >

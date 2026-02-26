@@ -85,7 +85,7 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
             <span className="toolbar-text">Dosya</span>
           </button>
         </div>
-        
+
         <div className="toolbar-right">
           <button
             className="toolbar-action-btn"
@@ -109,7 +109,7 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json"
+          accept=".json,.xml"
           onChange={handleFileSelect}
           style={{ display: 'none' }}
         />
@@ -129,10 +129,9 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
       {modalType === 'file' && (
         <InputModal
           title="Yeni Dosya"
-          label="Dosya adı:"
-          placeholder="Dosya adını girin"
-          defaultValue="new-file"
-          suffix=".json"
+          label="Dosya adı (.json veya .xml):"
+          placeholder="örn: data.json veya config.xml"
+          defaultValue="new-file.json"
           onSubmit={handleModalSubmit}
           onCancel={handleModalCancel}
         />

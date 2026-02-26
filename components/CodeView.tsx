@@ -5,12 +5,14 @@ import { JkirCollection } from '../hooks/useCollections';
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, placeholder as cmPlaceholder } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { json, jsonParseLinter } from '@codemirror/lang-json';
+import { xml } from '@codemirror/lang-xml';
 import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { syntaxHighlighting, defaultHighlightStyle, indentOnInput, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language';
-import { linter, lintGutter } from '@codemirror/lint';
+import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+import { parseXml, formatXml, minifyXml } from '../utils/xmlParser';
 
 interface CodeViewProps {
     file: JkirCollection | null;
@@ -89,12 +91,66 @@ const lightTheme = EditorView.theme({
 
 const darkThemeCompartment = new Compartment();
 
+/**
+ * Detect file type from the file object.
+ */
+function getFileType(file: JkirCollection | null): 'json' | 'xml' {
+    if (!file) return 'json';
+    if (file.fileType) return file.fileType;
+    if (file.name.toLowerCase().endsWith('.xml')) return 'xml';
+    return 'json';
+}
+
+/**
+ * XML linter for CodeMirror
+ */
+function xmlLinter() {
+    return linter((view) => {
+        const diagnostics: Diagnostic[] = [];
+        const content = view.state.doc.toString().trim();
+        if (!content) return diagnostics;
+
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, 'application/xml');
+            const parseError = doc.querySelector('parsererror');
+
+            if (parseError) {
+                const errorText = parseError.textContent || 'XML parse hatası';
+                // Try to extract line/column from error message
+                const lineMatch = errorText.match(/line (\d+)/i);
+                const line = lineMatch ? parseInt(lineMatch[1], 10) : 1;
+                const from = view.state.doc.line(Math.min(line, view.state.doc.lines)).from;
+                const to = view.state.doc.line(Math.min(line, view.state.doc.lines)).to;
+
+                diagnostics.push({
+                    from,
+                    to,
+                    severity: 'error',
+                    message: errorText.split('\n')[0] || 'Geçersiz XML',
+                });
+            }
+        } catch (e) {
+            diagnostics.push({
+                from: 0,
+                to: Math.min(content.length, 100),
+                severity: 'error',
+                message: e instanceof Error ? e.message : 'Geçersiz XML',
+            });
+        }
+
+        return diagnostics;
+    });
+}
+
 const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse }) => {
     const [error, setError] = useState<string | null>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
     const currentFileIdRef = useRef<string | null>(null);
     const [isDark, setIsDark] = useState(false);
+
+    const fileType = getFileType(file);
 
     // Detect theme changes
     useEffect(() => {
@@ -126,15 +182,20 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
     useEffect(() => {
         if (!file || file.type !== 'file' || !editorContainerRef.current) return;
 
+        const currentFileType = getFileType(file);
+        const defaultContent = currentFileType === 'xml'
+            ? '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n</root>'
+            : '{}';
+
         // If same file, update content if needed
         if (editorViewRef.current && currentFileIdRef.current === file.id) {
             const currentContent = editorViewRef.current.state.doc.toString();
-            if (currentContent !== (file.content || '{}')) {
+            if (currentContent !== (file.content || defaultContent)) {
                 editorViewRef.current.dispatch({
                     changes: {
                         from: 0,
                         to: currentContent.length,
-                        insert: file.content || '{}',
+                        insert: file.content || defaultContent,
                     },
                 });
             }
@@ -148,13 +209,19 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
         }
 
         currentFileIdRef.current = file.id;
-        const content = file.content || '{}';
+        const content = file.content || defaultContent;
 
         // Parse initial content
         try {
-            const parsed = JSON.parse(content);
-            onJsonParse(parsed);
-            setError(null);
+            if (currentFileType === 'xml') {
+                const parsed = parseXml(content);
+                onJsonParse(parsed);
+                setError(null);
+            } else {
+                const parsed = JSON.parse(content);
+                onJsonParse(parsed);
+                setError(null);
+            }
         } catch {
             onJsonParse(null);
         }
@@ -165,14 +232,29 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
                 onContentChange(value);
 
                 try {
-                    const parsed = JSON.parse(value);
-                    onJsonParse(parsed);
-                    setError(null);
+                    if (currentFileType === 'xml') {
+                        const parsed = parseXml(value);
+                        onJsonParse(parsed);
+                        setError(null);
+                    } else {
+                        const parsed = JSON.parse(value);
+                        onJsonParse(parsed);
+                        setError(null);
+                    }
                 } catch {
                     // Don't set error while typing - linter handles it
                 }
             }
         });
+
+        // Language-specific extensions
+        const langExtensions = currentFileType === 'xml'
+            ? [xml(), xmlLinter()]
+            : [json(), linter(jsonParseLinter())];
+
+        const placeholderText = currentFileType === 'xml'
+            ? 'XML verisi buraya yazın...\n\n<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <item>Test</item>\n</root>'
+            : 'JSON verisi buraya yazın...\n\n{\n  "name": "Test",\n  "version": "1.0"\n}';
 
         const state = EditorState.create({
             doc: content,
@@ -187,12 +269,11 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
                 closeBrackets(),
                 autocompletion(),
                 highlightSelectionMatches(),
-                json(),
-                linter(jsonParseLinter()),
+                ...langExtensions,
                 lintGutter(),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 darkThemeCompartment.of(isDark ? oneDark : lightTheme),
-                cmPlaceholder('JSON verisi buraya yazın...\n\n{\n  "name": "Test",\n  "version": "1.0"\n}'),
+                cmPlaceholder(placeholderText),
                 keymap.of([
                     ...defaultKeymap,
                     ...historyKeymap,
@@ -233,26 +314,37 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
         const value = editorViewRef.current.state.doc.toString();
 
         if (!value.trim()) {
-            setError('Lütfen JSON verisi girin');
+            setError(fileType === 'xml' ? 'Lütfen XML verisi girin' : 'Lütfen JSON verisi girin');
             onJsonParse(null);
             return;
         }
 
         try {
-            const parsed = JSON.parse(value);
-            const formatted = JSON.stringify(parsed, null, 2);
-            editorViewRef.current.dispatch({
-                changes: { from: 0, to: value.length, insert: formatted },
-            });
-            setError(null);
-            onJsonParse(parsed);
-            onContentChange(formatted);
+            if (fileType === 'xml') {
+                const formatted = formatXml(value);
+                editorViewRef.current.dispatch({
+                    changes: { from: 0, to: value.length, insert: formatted },
+                });
+                setError(null);
+                const parsed = parseXml(formatted);
+                onJsonParse(parsed);
+                onContentChange(formatted);
+            } else {
+                const parsed = JSON.parse(value);
+                const formatted = JSON.stringify(parsed, null, 2);
+                editorViewRef.current.dispatch({
+                    changes: { from: 0, to: value.length, insert: formatted },
+                });
+                setError(null);
+                onJsonParse(parsed);
+                onContentChange(formatted);
+            }
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'Bilinmeyen hata';
-            setError(`Geçersiz JSON: ${errorMessage}`);
+            setError(`Geçersiz ${fileType === 'xml' ? 'XML' : 'JSON'}: ${errorMessage}`);
             onJsonParse(null);
         }
-    }, [onJsonParse, onContentChange]);
+    }, [onJsonParse, onContentChange, fileType]);
 
     const handleClear = useCallback(() => {
         if (!editorViewRef.current) return;
@@ -277,39 +369,53 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
             onContentChange(text);
 
             try {
-                const parsed = JSON.parse(text);
-                onJsonParse(parsed);
+                if (fileType === 'xml') {
+                    const parsed = parseXml(text);
+                    onJsonParse(parsed);
+                } else {
+                    const parsed = JSON.parse(text);
+                    onJsonParse(parsed);
+                }
             } catch {
-                // pasted content may not be valid JSON yet
+                // pasted content may not be valid yet
             }
         } catch (e) {
             console.error('Clipboard access denied:', e);
             setError('Pano erişimi reddedildi. Lütfen manuel olarak yapıştırın.');
         }
-    }, [onContentChange, onJsonParse]);
+    }, [onContentChange, onJsonParse, fileType]);
 
     const handleMinify = useCallback(() => {
         if (!editorViewRef.current) return;
         const value = editorViewRef.current.state.doc.toString();
 
         if (!value.trim()) {
-            setError('Lütfen JSON verisi girin');
+            setError(fileType === 'xml' ? 'Lütfen XML verisi girin' : 'Lütfen JSON verisi girin');
             return;
         }
 
         try {
-            const parsed = JSON.parse(value);
-            const minified = JSON.stringify(parsed);
-            editorViewRef.current.dispatch({
-                changes: { from: 0, to: value.length, insert: minified },
-            });
-            setError(null);
-            onContentChange(minified);
+            if (fileType === 'xml') {
+                const minified = minifyXml(value);
+                editorViewRef.current.dispatch({
+                    changes: { from: 0, to: value.length, insert: minified },
+                });
+                setError(null);
+                onContentChange(minified);
+            } else {
+                const parsed = JSON.parse(value);
+                const minified = JSON.stringify(parsed);
+                editorViewRef.current.dispatch({
+                    changes: { from: 0, to: value.length, insert: minified },
+                });
+                setError(null);
+                onContentChange(minified);
+            }
         } catch (e) {
             const errorMessage = e instanceof Error ? e.message : 'Bilinmeyen hata';
-            setError(`Geçersiz JSON: ${errorMessage}`);
+            setError(`Geçersiz ${fileType === 'xml' ? 'XML' : 'JSON'}: ${errorMessage}`);
         }
-    }, [onContentChange]);
+    }, [onContentChange, fileType]);
 
     const handleCopy = useCallback(async () => {
         if (!editorViewRef.current) return;
@@ -341,13 +447,19 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
         );
     }
 
+    const fileIcon = fileType === 'xml' ? '📄' : '📄';
+    const fileTypeBadge = fileType === 'xml'
+        ? <span className="file-type-badge xml">XML</span>
+        : <span className="file-type-badge json">JSON</span>;
+
     return (
         <div className="code-view code-view-editable">
             {/* Toolbar */}
             <div className="code-editor-toolbar">
                 <div className="file-name-display">
-                    <span className="file-icon">📄</span>
+                    <span className="file-icon">{fileIcon}</span>
                     <span className="file-name">{file.name}</span>
+                    {fileTypeBadge}
                 </div>
                 <div className="code-editor-actions">
                     <button className="code-toolbar-btn" onClick={handlePaste} title="Panodan Yapıştır">

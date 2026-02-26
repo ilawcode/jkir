@@ -8,6 +8,7 @@ export interface JkirCollection {
   id: string;
   name: string;
   type: 'folder' | 'file';
+  fileType?: 'json' | 'xml';
   content?: string;
   children?: JkirCollection[];
   createdAt: number;
@@ -141,12 +142,21 @@ export const useCollections = () => {
   }, []);
 
   // Create new file
-  const createFile = useCallback((name: string, parentId?: string, content: string = '{}') => {
+  const createFile = useCallback((name: string, parentId?: string, content?: string) => {
+    const isXml = name.toLowerCase().endsWith('.xml');
+    const isJson = name.toLowerCase().endsWith('.json');
+    const finalName = isXml || isJson ? name : `${name}.json`;
+    const fileType: 'json' | 'xml' = isXml ? 'xml' : 'json';
+    const defaultContent = isXml
+      ? '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n</root>'
+      : '{}';
+
     const newFile: JkirCollection = {
       id: generateId(),
-      name: name.endsWith('.json') ? name : `${name}.json`,
+      name: finalName,
       type: 'file',
-      content,
+      fileType,
+      content: content ?? defaultContent,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -186,10 +196,17 @@ export const useCollections = () => {
       const updateItem = (items: JkirCollection[]): JkirCollection[] => {
         return items.map((item) => {
           if (item.id === id) {
-            const finalName = item.type === 'file' && !newName.endsWith('.json') 
-              ? `${newName}.json` 
-              : newName;
-            return { ...item, name: finalName, updatedAt: Date.now() };
+            let finalName = newName;
+            if (item.type === 'file') {
+              const hasExt = newName.endsWith('.json') || newName.endsWith('.xml');
+              if (!hasExt) {
+                finalName = item.fileType === 'xml' ? `${newName}.xml` : `${newName}.json`;
+              }
+            }
+            const fileType: 'json' | 'xml' | undefined = item.type === 'file'
+              ? (finalName.endsWith('.xml') ? 'xml' : 'json')
+              : undefined;
+            return { ...item, name: finalName, fileType, updatedAt: Date.now() };
           }
           if (item.children) {
             return { ...item, children: updateItem(item.children) };
@@ -264,10 +281,18 @@ export const useCollections = () => {
     if (!item) return;
 
     const duplicateRecursive = (original: JkirCollection): JkirCollection => {
+      let copyName: string;
+      if (original.type === 'file') {
+        const ext = original.fileType === 'xml' ? '.xml' : '.json';
+        copyName = `${original.name.replace(/\.(json|xml)$/i, '')} (copy)${ext}`;
+      } else {
+        copyName = `${original.name} (copy)`;
+      }
+
       const newItem: JkirCollection = {
         ...original,
         id: generateId(),
-        name: `${original.name.replace(/\.json$/, '')} (copy)${original.type === 'file' ? '.json' : ''}`,
+        name: copyName,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -331,7 +356,7 @@ export const useCollections = () => {
         try {
           const content = e.target?.result as string;
           const data = JSON.parse(content);
-          
+
           if (data.collections && Array.isArray(data.collections)) {
             setCollections((prev) => [...prev, ...data.collections]);
             resolve();
@@ -360,7 +385,7 @@ export const useCollections = () => {
   // Get all ancestor IDs for a given item
   const getAncestorIds = useCallback((id: string): string[] => {
     const ancestors: string[] = [];
-    
+
     const findAncestors = (items: JkirCollection[], targetId: string, path: string[]): boolean => {
       for (const item of items) {
         if (item.id === targetId) {
@@ -375,7 +400,7 @@ export const useCollections = () => {
       }
       return false;
     };
-    
+
     findAncestors(collections, id, []);
     return ancestors;
   }, [collections]);
@@ -389,8 +414,8 @@ export const useCollections = () => {
       const expandFolders = (items: JkirCollection[]): JkirCollection[] => {
         return items.map((item) => {
           if (ancestors.includes(item.id) && item.type === 'folder') {
-            return { 
-              ...item, 
+            return {
+              ...item,
               isExpanded: true,
               children: item.children ? expandFolders(item.children) : item.children
             };
@@ -408,10 +433,10 @@ export const useCollections = () => {
   // Search collections by name
   const searchCollections = useCallback((query: string): JkirCollection[] => {
     if (!query.trim()) return [];
-    
+
     const results: JkirCollection[] = [];
     const lowerQuery = query.toLowerCase();
-    
+
     const searchRecursive = (items: JkirCollection[]) => {
       for (const item of items) {
         if (item.name.toLowerCase().includes(lowerQuery)) {
@@ -422,7 +447,7 @@ export const useCollections = () => {
         }
       }
     };
-    
+
     searchRecursive(collections);
     return results;
   }, [collections]);

@@ -63,11 +63,11 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
             const nodeId = `node-${idCounter++}`;
 
             if (value === null) {
-                return { 
+                return {
                     id: nodeId,
-                    name, 
-                    type: 'primitive', 
-                    children: [], 
+                    name,
+                    type: 'primitive',
+                    children: [],
                     properties: [{ key: name, type: 'null', value: 'null' }],
                     rawData: value,
                     path: currentPath,
@@ -112,11 +112,11 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                     }
                 });
 
-                return { 
+                return {
                     id: nodeId,
-                    name, 
-                    type: 'object', 
-                    children, 
+                    name,
+                    type: 'object',
+                    children,
                     properties,
                     rawData: value,
                     path: currentPath,
@@ -140,7 +140,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
     // Get all nodes as flat list for search
     const allNodes = useMemo(() => {
         if (!structure) return [];
-        
+
         const nodes: NodeInfo[] = [];
         const traverse = (node: NodeInfo) => {
             nodes.push(node);
@@ -154,7 +154,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
     const searchResults = useMemo(() => {
         if (!searchQuery.trim()) return [];
         const query = searchQuery.toLowerCase();
-        return allNodes.filter(node => 
+        return allNodes.filter(node =>
             node.name.toLowerCase().includes(query) ||
             node.path.toLowerCase().includes(query)
         );
@@ -220,7 +220,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
             // Temporarily reset zoom for export
             const originalZoom = zoom;
             setZoom(1);
-            
+
             // Wait for the zoom to apply
             await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -275,7 +275,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
         // Highlight and scroll to node
         setHighlightedNodeId(node.id);
         setSearchQuery('');
-        
+
         setTimeout(() => {
             const nodeElement = nodeRefs.current.get(node.id);
             if (nodeElement) {
@@ -315,18 +315,18 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
     // Flatten object keys recursively for nested objects
     const flattenKeys = (obj: Record<string, unknown>, prefix: string = ''): { key: string; type: string }[] => {
         const result: { key: string; type: string }[] = [];
-        
+
         for (const [key, val] of Object.entries(obj)) {
             const fullKey = prefix ? `${prefix}.${key}` : key;
             const type = getTypeString(val);
-            
+
             if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
                 result.push(...flattenKeys(val as Record<string, unknown>, fullKey));
             } else {
                 result.push({ key: fullKey, type });
             }
         }
-        
+
         return result;
     };
 
@@ -366,7 +366,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
     // Generate Markdown table
     const generateMarkdownTable = useCallback((rawData: unknown): string => {
         const { headers, rows } = generateTableData(rawData);
-        
+
         if (rows.length === 0) {
             return `| ${headers.join(' | ')} |\n| ${headers.map(() => '---').join(' | ')} |\n| (Veri yok) |`;
         }
@@ -380,7 +380,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
 
     const copyAsMarkdown = useCallback(async () => {
         if (!tableModal.data) return;
-        
+
         const markdown = generateMarkdownTable(tableModal.data);
         try {
             await navigator.clipboard.writeText(markdown);
@@ -398,21 +398,21 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
         const isHighlighted = highlightedNodeId === node.id;
 
         return (
-            <div 
-                key={node.id} 
+            <div
+                key={node.id}
                 className={`flow-node-container level-${level}`}
                 ref={(el) => {
                     if (el) nodeRefs.current.set(node.id, el);
                 }}
             >
-                <div 
+                <div
                     className={`flow-node ${node.type} ${isRoot ? 'root' : ''} clickable ${isHighlighted ? 'highlighted' : ''}`}
                     onClick={() => handleNodeClick(node)}
                     title="Tablo olarak görmek için tıklayın"
                 >
                     <div className="flow-node-header">
                         {hasChildren && (
-                            <button 
+                            <button
                                 className={`flow-collapse-btn ${isCollapsed ? 'collapsed' : ''}`}
                                 onClick={(e) => toggleNode(node.id, e)}
                                 title={isCollapsed ? 'Genişlet' : 'Daralt'}
@@ -473,7 +473,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                             <span className="table-path">{tableModal.path}</span>
                         </div>
                         <div className="table-modal-actions">
-                            <button 
+                            <button
                                 className={`btn-copy-markdown ${copied ? 'copied' : ''}`}
                                 onClick={copyAsMarkdown}
                                 title="Confluence için Markdown olarak kopyala"
@@ -532,7 +532,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
             <div className="empty-state">
                 <div className="empty-state-icon">⚡</div>
                 <h5>Flow Diyagramı</h5>
-                <p className="text-muted">JSON verisi yüklendiğinde yapı diyagramı burada gösterilecek</p>
+                <p className="text-muted">JSON veya XML verisi yüklendiginde yapı diyagramı burada gösterilecek</p>
             </div>
         );
     }
@@ -555,7 +555,7 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         {searchQuery && (
-                            <button 
+                            <button
                                 className="flow-search-clear"
                                 onClick={() => setSearchQuery('')}
                             >
@@ -595,9 +595,9 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                 <div className="flow-toolbar-center">
                     {/* Zoom Controls */}
                     <div className="flow-zoom-controls">
-                        <button 
-                            className="flow-zoom-btn" 
-                            onClick={zoomOut} 
+                        <button
+                            className="flow-zoom-btn"
+                            onClick={zoomOut}
                             disabled={zoom <= ZOOM_MIN}
                             title="Uzaklaştır (Ctrl + Scroll)"
                         >
@@ -607,16 +607,16 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                                 <line x1="8" y1="11" x2="14" y2="11"></line>
                             </svg>
                         </button>
-                        <button 
-                            className="flow-zoom-level" 
+                        <button
+                            className="flow-zoom-level"
                             onClick={resetZoom}
                             title="Sıfırla"
                         >
                             {Math.round(zoom * 100)}%
                         </button>
-                        <button 
-                            className="flow-zoom-btn" 
-                            onClick={zoomIn} 
+                        <button
+                            className="flow-zoom-btn"
+                            onClick={zoomIn}
                             disabled={zoom >= ZOOM_MAX}
                             title="Yakınlaştır (Ctrl + Scroll)"
                         >
@@ -648,9 +648,9 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
                         </svg>
                         Tümünü Kapat
                     </button>
-                    <button 
+                    <button
                         className={`flow-toolbar-btn export-btn ${isExporting ? 'exporting' : ''}`}
-                        onClick={exportToPng} 
+                        onClick={exportToPng}
                         disabled={isExporting}
                         title="PNG olarak dışa aktar"
                     >
@@ -673,12 +673,12 @@ const FlowView: React.FC<FlowViewProps> = ({ data }) => {
             </div>
 
             {/* Diagram Container with Zoom */}
-            <div 
-                className="flow-diagram-container" 
+            <div
+                className="flow-diagram-container"
                 ref={diagramContainerRef}
                 onWheel={handleWheel}
             >
-                <div 
+                <div
                     className="flow-diagram"
                     ref={diagramRef}
                     style={{

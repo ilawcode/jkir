@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import TabNavigation, { TabType } from '../components/TabNavigation';
 import TreeView from '../components/TreeView';
-import CodeView from '../components/CodeView';
+import SplitCodeView from '../components/SplitCodeView';
 import FlowView from '../components/FlowView';
 import QueryView from '../components/QueryView';
 import CollectionToolbar from '../components/CollectionToolbar';
@@ -35,11 +35,20 @@ export default function Home() {
     importCollections,
     expandToItem,
     searchCollections,
+    findItemById,
   } = useCollections();
 
   const { theme, resolvedTheme, setTheme } = useTheme();
 
-  const [parsedJson, setParsedJson] = useState<unknown>(null);
+  // Split editor state
+  const [openFiles, setOpenFiles] = useState<{ left: string | null; right: string | null }>({
+    left: null,
+    right: null,
+  });
+  const [activePane, setActivePane] = useState<'left' | 'right'>('left');
+  const [parsedJsonLeft, setParsedJsonLeft] = useState<unknown>(null);
+  const [parsedJsonRight, setParsedJsonRight] = useState<unknown>(null);
+
   const [activeTab, setActiveTab] = useState<TabType>('tree');
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -48,41 +57,164 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastWidthRef = useRef(DEFAULT_PANEL_WIDTH);
 
-  const handleJsonParse = useCallback((data: unknown) => {
-    setParsedJson(data);
+  // Derive files from openFiles state
+  const leftFile = openFiles.left ? findItemById(collections, openFiles.left) : null;
+  const rightFile = openFiles.right ? findItemById(collections, openFiles.right) : null;
+  const activeParsedJson = activePane === 'left' ? parsedJsonLeft : parsedJsonRight;
+
+  // Sync selectedId from localStorage on initial load
+  useEffect(() => {
+    if (isLoaded && selectedId && !openFiles.left && !openFiles.right) {
+      setOpenFiles({ left: selectedId, right: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]);
+
+  // Clean up openFiles when items are deleted from collections
+  useEffect(() => {
+    if (!isLoaded) return;
+    setOpenFiles(prev => {
+      const leftExists = prev.left ? findItemById(collections, prev.left) : null;
+      const rightExists = prev.right ? findItemById(collections, prev.right) : null;
+
+      if (leftExists && rightExists) return prev;
+      if (!leftExists && !rightExists) return { left: null, right: null };
+      if (!leftExists && rightExists) return { left: prev.right, right: null };
+      if (leftExists && !rightExists && prev.right !== null) return { left: prev.left, right: null };
+      return prev;
+    });
+  }, [collections, findItemById, isLoaded]);
+
+  // JSON parse handlers for each pane
+  const handleLeftJsonParse = useCallback((data: unknown) => {
+    setParsedJsonLeft(data);
   }, []);
 
-  const handleContentChange = useCallback((content: string) => {
-    if (selectedId) {
-      updateFileContent(selectedId, content);
-    }
-  }, [selectedId, updateFileContent]);
+  const handleRightJsonParse = useCallback((data: unknown) => {
+    setParsedJsonRight(data);
+  }, []);
 
+  // Content change handlers for each pane
+  const handleLeftContentChange = useCallback((content: string) => {
+    if (openFiles.left) {
+      updateFileContent(openFiles.left, content);
+    }
+  }, [openFiles.left, updateFileContent]);
+
+  const handleRightContentChange = useCallback((content: string) => {
+    if (openFiles.right) {
+      updateFileContent(openFiles.right, content);
+    }
+  }, [openFiles.right, updateFileContent]);
+
+  // Normal file selection - opens in left pane only (single editor)
   const handleFileSelect = useCallback((id: string) => {
     setSelectedId(id);
+
+    // Only open files in code panes, not folders
+    const item = findItemById(collections, id);
+    if (!item || item.type !== 'file') return;
+
     setActiveTab('code');
+    setActivePane('left');
+
+    setOpenFiles(prev => {
+      // If file is already in the right pane, activate it there instead
+      if (prev.right === id) {
+        setActivePane('right');
+        return prev;
+      }
+      // Open/replace in left pane, keep right pane as-is
+      return { ...prev, left: id };
+    });
+  }, [setSelectedId, findItemById, collections]);
+
+  // Open file in split (right pane) - triggered from context menu
+  const handleOpenInSplit = useCallback((id: string) => {
+    const item = findItemById(collections, id);
+    if (!item || item.type !== 'file') return;
+
+    setSelectedId(id);
+    setActiveTab('code');
+    setActivePane('right');
+
+    setOpenFiles(prev => {
+      // If file is already open in the left pane, don't duplicate
+      if (prev.left === id) {
+        setActivePane('left');
+        return prev;
+      }
+      // If no file in left yet, put this in left instead
+      if (!prev.left) {
+        setActivePane('left');
+        return { left: id, right: null };
+      }
+      // Open/replace in right pane
+      return { ...prev, right: id };
+    });
+  }, [setSelectedId, findItemById, collections]);
+
+  // Close pane handlers
+  const handleCloseLeft = useCallback(() => {
+    setOpenFiles(prev => {
+      if (prev.right) {
+        // Move right to left
+        setParsedJsonLeft(parsedJsonRight);
+        setParsedJsonRight(null);
+        setActivePane('left');
+        if (prev.right) setSelectedId(prev.right);
+        return { left: prev.right, right: null };
+      }
+      setSelectedId(null);
+      setParsedJsonLeft(null);
+      return { left: null, right: null };
+    });
+  }, [parsedJsonRight, setSelectedId]);
+
+  const handleCloseRight = useCallback(() => {
+    setOpenFiles(prev => {
+      setActivePane('left');
+      setParsedJsonRight(null);
+      if (prev.left) setSelectedId(prev.left);
+      return { ...prev, right: null };
+    });
   }, [setSelectedId]);
 
+  // Active pane change
+  const handleActivePaneChange = useCallback((pane: 'left' | 'right') => {
+    setActivePane(pane);
+    const fileId = pane === 'left' ? openFiles.left : openFiles.right;
+    if (fileId) setSelectedId(fileId);
+  }, [openFiles, setSelectedId]);
+
+  // Data change from tree view (edits in tree/flow/query apply to active pane)
   const handleDataChange = useCallback((newData: unknown) => {
-    setParsedJson(newData);
-    if (selectedId && selectedItem) {
-      const isXml = selectedItem.fileType === 'xml' || selectedItem.name.toLowerCase().endsWith('.xml');
+    const currentFileId = activePane === 'left' ? openFiles.left : openFiles.right;
+    const currentFile = activePane === 'left' ? leftFile : rightFile;
+
+    if (activePane === 'left') {
+      setParsedJsonLeft(newData);
+    } else {
+      setParsedJsonRight(newData);
+    }
+
+    if (currentFileId && currentFile) {
+      const isXml = currentFile.fileType === 'xml' || currentFile.name.toLowerCase().endsWith('.xml');
       if (isXml) {
         try {
           const xmlStr = objectToXml(newData);
           const formatted = formatXml(xmlStr);
-          updateFileContent(selectedId, formatted);
+          updateFileContent(currentFileId, formatted);
         } catch {
-          // If serialization fails, store as JSON fallback
           const formatted = JSON.stringify(newData, null, 2);
-          updateFileContent(selectedId, formatted);
+          updateFileContent(currentFileId, formatted);
         }
       } else {
         const formatted = JSON.stringify(newData, null, 2);
-        updateFileContent(selectedId, formatted);
+        updateFileContent(currentFileId, formatted);
       }
     }
-  }, [selectedId, selectedItem, updateFileContent]);
+  }, [activePane, openFiles, leftFile, rightFile, updateFileContent]);
 
   const handleCreateFolder = useCallback((name: string, parentId?: string) => {
     createFolder(name, parentId);
@@ -92,7 +224,7 @@ export default function Home() {
     createFile(name, parentId);
   }, [createFile]);
 
-  // Drag resize logic
+  // Drag resize logic (sidebar)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -134,7 +266,7 @@ export default function Home() {
     };
   }, [isDragging]);
 
-  // Double click to toggle
+  // Double click to toggle sidebar
   const handleDoubleClick = useCallback(() => {
     if (isCollapsed) {
       setIsCollapsed(false);
@@ -150,20 +282,27 @@ export default function Home() {
     switch (activeTab) {
       case 'code':
         return (
-          <CodeView
-            file={selectedItem}
-            onContentChange={handleContentChange}
-            onJsonParse={handleJsonParse}
+          <SplitCodeView
+            leftFile={leftFile}
+            rightFile={rightFile}
+            activePane={activePane}
+            onActivePaneChange={handleActivePaneChange}
+            onLeftContentChange={handleLeftContentChange}
+            onRightContentChange={handleRightContentChange}
+            onLeftJsonParse={handleLeftJsonParse}
+            onRightJsonParse={handleRightJsonParse}
+            onCloseLeft={handleCloseLeft}
+            onCloseRight={handleCloseRight}
           />
         );
       case 'tree':
-        return <TreeView data={parsedJson} onDataChange={handleDataChange} />;
+        return <TreeView data={activeParsedJson} onDataChange={handleDataChange} />;
       case 'flow':
-        return <FlowView data={parsedJson} />;
+        return <FlowView data={activeParsedJson} />;
       case 'query':
-        return <QueryView data={parsedJson} />;
+        return <QueryView data={activeParsedJson} />;
       default:
-        return <TreeView data={parsedJson} onDataChange={handleDataChange} />;
+        return <TreeView data={activeParsedJson} onDataChange={handleDataChange} />;
     }
   };
 
@@ -186,7 +325,7 @@ export default function Home() {
       <header className="app-header">
         <div className="header-left">
           <h1>🔍 Veri Görüntüleyici</h1>
-          <p className="header-subtitle">JSON & XML verilerini kolayca görselleştirin</p>
+          <p className="header-subtitle">JSON &amp; XML verilerini kolayca görselleştirin</p>
         </div>
         <div className="header-right">
           <ThemeToggle
@@ -224,6 +363,7 @@ export default function Home() {
                 onCreateFolder={handleCreateFolder}
                 onExpandToItem={expandToItem}
                 onSearch={searchCollections}
+                onOpenInSplit={handleOpenInSplit}
               />
             </div>
           </div>

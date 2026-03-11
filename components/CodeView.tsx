@@ -18,6 +18,7 @@ interface CodeViewProps {
     file: JkirCollection | null;
     onContentChange: (content: string) => void;
     onJsonParse: (data: unknown) => void;
+    onClose?: () => void;
 }
 
 // Custom light theme
@@ -143,7 +144,7 @@ function xmlLinter() {
     });
 }
 
-const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse }) => {
+const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse, onClose }) => {
     const [error, setError] = useState<string | null>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
@@ -460,6 +461,11 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse 
                     <span className="file-icon">{fileIcon}</span>
                     <span className="file-name">{file.name}</span>
                     {fileTypeBadge}
+                    {onClose && (
+                        <button className="split-pane-close-btn" onClick={onClose} title="Paneli Kapat">
+                            ✕
+                        </button>
+                    )}
                 </div>
                 <div className="code-editor-actions">
                     <button className="code-toolbar-btn" onClick={handlePaste} title="Panodan Yapıştır">

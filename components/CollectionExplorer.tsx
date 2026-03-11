@@ -20,6 +20,7 @@ interface CollectionExplorerProps {
   onCreateFolder: (name: string, parentId?: string) => void;
   onExpandToItem: (id: string) => void;
   onSearch: (query: string) => JkirCollection[];
+  onOpenInSplit?: (id: string) => void;
 }
 
 interface ContextMenuState {
@@ -43,6 +44,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   onCreateFolder,
   onExpandToItem,
   onSearch,
+  onOpenInSplit,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
@@ -216,6 +218,13 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
 
     closeContextMenu();
   }, [contextMenu.item, collectFilesFromFolder, closeContextMenu]);
+
+  const handleOpenInSplitClick = useCallback(() => {
+    if (contextMenu.item && contextMenu.item.type === 'file' && onOpenInSplit) {
+      onOpenInSplit(contextMenu.item.id);
+    }
+    closeContextMenu();
+  }, [contextMenu.item, onOpenInSplit, closeContextMenu]);
 
   const handlePojoModalClose = useCallback(() => {
     setPojoModal({ visible: false, files: [] });
@@ -395,6 +404,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
           onNewFile={handleNewFileClick}
           onNewFolder={handleNewFolderClick}
           onGeneratePojo={handleGeneratePojoClick}
+          onOpenInSplit={handleOpenInSplitClick}
           onClose={closeContextMenu}
         />
       )}

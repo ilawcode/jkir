@@ -13,6 +13,7 @@ interface CollectionContextMenuProps {
   onNewFile: () => void;
   onNewFolder: () => void;
   onGeneratePojo: () => void;
+  onOpenInSplit?: () => void;
   onClose: () => void;
 }
 
@@ -26,6 +27,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
   onNewFile,
   onNewFolder,
   onGeneratePojo,
+  onOpenInSplit,
   onClose,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -47,11 +49,11 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
     if (menuRef.current) {
       const menu = menuRef.current;
       const rect = menu.getBoundingClientRect();
-      
+
       if (rect.right > window.innerWidth) {
         menu.style.left = `${window.innerWidth - rect.width - 10}px`;
       }
-      
+
       if (rect.bottom > window.innerHeight) {
         menu.style.top = `${window.innerHeight - rect.height - 10}px`;
       }
@@ -83,26 +85,36 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
           <div className="context-menu-divider" />
         </>
       )}
-      
+
       <button className="context-menu-item" onClick={onRename}>
         <span className="context-icon">✏️</span>
         <span>Yeniden Adlandır</span>
       </button>
-      
+
       <button className="context-menu-item" onClick={onDuplicate}>
         <span className="context-icon">📋</span>
         <span>Kopyala</span>
       </button>
-      
+
+      {!isFolder && onOpenInSplit && (
+        <>
+          <div className="context-menu-divider" />
+          <button className="context-menu-item split-open" onClick={onOpenInSplit}>
+            <span className="context-icon">◫</span>
+            <span>Sağda Aç</span>
+          </button>
+        </>
+      )}
+
       <div className="context-menu-divider" />
 
       <button className="context-menu-item java-pojo" onClick={onGeneratePojo}>
         <span className="context-icon">☕</span>
         <span>Java POJO Oluştur</span>
       </button>
-      
+
       <div className="context-menu-divider" />
-      
+
       <button className="context-menu-item danger" onClick={onDelete}>
         <span className="context-icon">🗑️</span>
         <span>Sil</span>

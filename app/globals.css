@@ -1218,6 +1218,141 @@
   /* Chrome/Safari */
 }
 
+/* ========================================
+   SPLIT CODE VIEW
+   ======================================== */
+.split-code-view {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.split-code-pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-top: 2.5px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.split-code-pane.active {
+  border-top-color: #667eea;
+}
+
+.split-code-pane .code-view-editable {
+  height: 100%;
+}
+
+/* Split Code Resizer */
+.split-code-resizer {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: #e8e8e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background 0.15s ease, width 0.15s ease;
+  z-index: 5;
+}
+
+.split-code-resizer:hover {
+  background: #d0d0d0;
+  width: 8px;
+}
+
+.split-code-resizer.dragging {
+  background: linear-gradient(180deg, #667eea, #764ba2);
+  width: 8px;
+}
+
+.split-code-resizer-grip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+
+.split-code-resizer-grip span {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #aaa;
+  transition: background 0.15s ease;
+}
+
+.split-code-resizer:hover .split-code-resizer-grip span {
+  background: #666;
+}
+
+.split-code-resizer.dragging .split-code-resizer-grip span {
+  background: #fff;
+}
+
+/* Close button in CodeView toolbar for split panes */
+.split-pane-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+  padding: 0;
+}
+
+.split-pane-close-btn:hover {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+/* Dark theme for split code view */
+.dark-theme .split-code-pane.active {
+  border-top-color: #667eea;
+}
+
+.dark-theme .split-code-resizer {
+  background: #2d3748;
+}
+
+.dark-theme .split-code-resizer:hover {
+  background: #4a5568;
+}
+
+.dark-theme .split-code-resizer.dragging {
+  background: linear-gradient(180deg, #667eea, #764ba2);
+}
+
+.dark-theme .split-code-resizer-grip span {
+  background: #636e7b;
+}
+
+.dark-theme .split-code-resizer:hover .split-code-resizer-grip span {
+  background: #a0aec0;
+}
+
+.dark-theme .split-pane-close-btn {
+  color: #636e7b;
+}
+
+.dark-theme .split-pane-close-btn:hover {
+  background: rgba(220, 53, 69, 0.2);
+  color: #fc8181;
+}
+
 .code-gutter {
   background: #f0f0f0;
   padding: 12px 0;
@@ -2357,6 +2492,22 @@
 
 .dark-theme .collection-context-menu .context-menu-item.java-pojo:hover {
   background-color: #3d3020;
+}
+
+.collection-context-menu .context-menu-item.split-open {
+  color: #6366f1;
+}
+
+.collection-context-menu .context-menu-item.split-open:hover {
+  background-color: #eef2ff;
+}
+
+.dark-theme .collection-context-menu .context-menu-item.split-open {
+  color: #818cf8;
+}
+
+.dark-theme .collection-context-menu .context-menu-item.split-open:hover {
+  background-color: #2d2b55;
 }
 
 .dark-theme .context-menu-divider {

@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'jkir-collections';
 
+export type DocumentRole = 'request' | 'response';
+export type ResponseVariant = 'success' | 'error' | 'businessError';
+
 export interface JkirCollection {
   id: string;
   name: string;
@@ -14,6 +17,13 @@ export interface JkirCollection {
   createdAt: number;
   updatedAt: number;
   isExpanded?: boolean;
+  documentRole?: DocumentRole;
+  responseVariant?: ResponseVariant;
+}
+
+export interface CreateFileOptions {
+  documentRole?: DocumentRole;
+  responseVariant?: ResponseVariant;
 }
 
 export interface CollectionsState {
@@ -39,19 +49,39 @@ const getDefaultCollections = (): JkirCollection[] => {
   ];
 };
 
+function getFileTypeFromName(name: string): 'json' | 'xml' {
+  return name.toLowerCase().endsWith('.xml') ? 'xml' : 'json';
+}
+
+function migrateCollections(items: JkirCollection[]): JkirCollection[] {
+  return items.map((item) => {
+    if (item.type === 'file') {
+      const fileType = item.fileType ?? getFileTypeFromName(item.name);
+      const documentRole = item.documentRole ?? 'response';
+      const responseVariant = item.responseVariant ?? 'success';
+      return { ...item, fileType, documentRole, responseVariant };
+    }
+    if (item.children?.length) {
+      return { ...item, children: migrateCollections(item.children) };
+    }
+    return item;
+  });
+}
+
 export const useCollections = () => {
   const [collections, setCollections] = useState<JkirCollection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount and migrate existing files (fileType, documentRole, responseVariant)
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as CollectionsState;
-        setCollections(parsed.collections || []);
-        setSelectedId(parsed.selectedId || null);
+        const migrated = migrateCollections(parsed.collections || []);
+        setCollections(migrated);
+        setSelectedId(parsed.selectedId ?? null);
       } else {
         setCollections(getDefaultCollections());
       }
@@ -142,7 +172,12 @@ export const useCollections = () => {
   }, []);
 
   // Create new file
-  const createFile = useCallback((name: string, parentId?: string, content?: string) => {
+  const createFile = useCallback((
+    name: string,
+    parentId?: string,
+    content?: string,
+    options?: CreateFileOptions
+  ) => {
     const isXml = name.toLowerCase().endsWith('.xml');
     const isJson = name.toLowerCase().endsWith('.json');
     const finalName = isXml || isJson ? name : `${name}.json`;
@@ -159,6 +194,8 @@ export const useCollections = () => {
       content: content ?? defaultContent,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      documentRole: options?.documentRole ?? 'response',
+      responseVariant: options?.responseVariant ?? 'success',
     };
 
     setCollections((prev) => {
@@ -430,6 +467,19 @@ export const useCollections = () => {
     });
   }, [getAncestorIds]);
 
+  // Collect all files from a folder (recursive) for analysis/POJO
+  const getFilesFromFolder = useCallback((folder: JkirCollection): { name: string; content: string }[] => {
+    const files: { name: string; content: string }[] = [];
+    const visit = (item: JkirCollection) => {
+      if (item.type === 'file' && item.content != null) {
+        files.push({ name: item.name, content: item.content });
+      }
+      item.children?.forEach(visit);
+    };
+    visit(folder);
+    return files;
+  }, []);
+
   // Search collections by name
   const searchCollections = useCallback((query: string): JkirCollection[] => {
     if (!query.trim()) return [];
@@ -471,6 +521,7 @@ export const useCollections = () => {
     findItemById,
     expandToItem,
     searchCollections,
+    getFilesFromFolder,
   };
 };
 

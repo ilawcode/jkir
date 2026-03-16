@@ -2,19 +2,21 @@
 
 import React from 'react';
 
-export type TabType = 'code' | 'tree' | 'flow' | 'query';
+export type TabType = 'code' | 'tree' | 'flow' | 'query' | 'analysis';
 
 interface TabNavigationProps {
     activeTab: TabType;
     onTabChange: (tab: TabType) => void;
+    showAnalysisTab?: boolean;
 }
 
-const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange }) => {
+const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange, showAnalysisTab }) => {
     const tabs: { id: TabType; icon: string; label: string }[] = [
         { id: 'code', icon: '</>', label: 'Code' },
         { id: 'tree', icon: '🌳', label: 'Tree' },
         { id: 'flow', icon: '⚡', label: 'Flow' },
         { id: 'query', icon: '🔍', label: 'Query' },
+        ...(showAnalysisTab ? [{ id: 'analysis' as const, icon: '📋', label: 'Analiz' }] : []),
     ];
 
     return (

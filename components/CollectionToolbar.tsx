@@ -2,10 +2,12 @@
 
 import React, { useRef, useState } from 'react';
 import InputModal from './InputModal';
+import CreateFileModal from './CreateFileModal';
+import type { CreateFileModalResult } from './CreateFileModal';
 
 interface CollectionToolbarProps {
   onCreateFolder: (name: string) => void;
-  onCreateFile: (name: string) => void;
+  onCreateFile: (result: CreateFileModalResult) => void;
   onExport: () => void;
   onImport: (file: File) => Promise<void>;
 }
@@ -30,12 +32,13 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
     setModalType('file');
   };
 
-  const handleModalSubmit = (name: string) => {
-    if (modalType === 'folder') {
-      onCreateFolder(name);
-    } else if (modalType === 'file') {
-      onCreateFile(name);
-    }
+  const handleFolderSubmit = (name: string) => {
+    onCreateFolder(name);
+    setModalType(null);
+  };
+
+  const handleCreateFileSubmit = (result: CreateFileModalResult) => {
+    onCreateFile(result);
     setModalType(null);
   };
 
@@ -117,18 +120,15 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
           label="Klasör adı:"
           placeholder="Klasör adını girin"
           defaultValue="New Folder"
-          onSubmit={handleModalSubmit}
+          onSubmit={handleFolderSubmit}
           onCancel={handleModalCancel}
         />
       )}
 
       {modalType === 'file' && (
-        <InputModal
+        <CreateFileModal
           title="Yeni Dosya"
-          label="Dosya adı (.json veya .xml):"
-          placeholder="örn: data.json veya config.xml"
-          defaultValue="new-file.json"
-          onSubmit={handleModalSubmit}
+          onSubmit={handleCreateFileSubmit}
           onCancel={handleModalCancel}
         />
       )}

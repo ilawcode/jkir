@@ -13,6 +13,7 @@ interface CollectionContextMenuProps {
   onNewFile: () => void;
   onNewFolder: () => void;
   onGeneratePojo: () => void;
+  onGenerateAnalysis?: () => void;
   onOpenInSplit?: () => void;
   onClose: () => void;
 }
@@ -27,6 +28,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
   onNewFile,
   onNewFolder,
   onGeneratePojo,
+  onGenerateAnalysis,
   onOpenInSplit,
   onClose,
 }) => {
@@ -112,6 +114,15 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
         <span className="context-icon">☕</span>
         <span>Java POJO Oluştur</span>
       </button>
+
+      {isFolder && onGenerateAnalysis && (
+        <>
+          <button className="context-menu-item" onClick={onGenerateAnalysis}>
+            <span className="context-icon">📋</span>
+            <span>Analiz Üret</span>
+          </button>
+        </>
+      )}
 
       <div className="context-menu-divider" />
 

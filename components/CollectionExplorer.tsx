@@ -6,6 +6,8 @@ import CollectionItem from './CollectionItem';
 import CollectionContextMenu from './CollectionContextMenu';
 import RenameModal from './RenameModal';
 import InputModal from './InputModal';
+import CreateFileModal from './CreateFileModal';
+import type { CreateFileModalResult } from './CreateFileModal';
 import PojoModal from './PojoModal';
 
 interface CollectionExplorerProps {
@@ -16,11 +18,12 @@ interface CollectionExplorerProps {
   onRename: (id: string, newName: string) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
-  onCreateFile: (name: string, parentId?: string) => void;
+  onCreateFile: (result: CreateFileModalResult, parentId?: string) => void;
   onCreateFolder: (name: string, parentId?: string) => void;
   onExpandToItem: (id: string) => void;
   onSearch: (query: string) => JkirCollection[];
   onOpenInSplit?: (id: string) => void;
+  onGenerateAnalysis?: (folder: JkirCollection) => void;
 }
 
 interface ContextMenuState {
@@ -45,6 +48,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   onExpandToItem,
   onSearch,
   onOpenInSplit,
+  onGenerateAnalysis,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
@@ -165,14 +169,17 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     closeContextMenu();
   }, [contextMenu.item, closeContextMenu]);
 
+  const handleCreateFileModalSubmit = useCallback((result: CreateFileModalResult) => {
+    onCreateFile(result, inputModal.parentId || undefined);
+    setInputModal({ type: null, parentId: null });
+  }, [inputModal.parentId, onCreateFile]);
+
   const handleInputModalSubmit = useCallback((name: string) => {
-    if (inputModal.type === 'newFile') {
-      onCreateFile(name, inputModal.parentId || undefined);
-    } else if (inputModal.type === 'newFolder') {
+    if (inputModal.type === 'newFolder') {
       onCreateFolder(name, inputModal.parentId || undefined);
     }
     setInputModal({ type: null, parentId: null });
-  }, [inputModal, onCreateFile, onCreateFolder]);
+  }, [inputModal, onCreateFolder]);
 
   const handleInputModalCancel = useCallback(() => {
     setInputModal({ type: null, parentId: null });
@@ -225,6 +232,13 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     }
     closeContextMenu();
   }, [contextMenu.item, onOpenInSplit, closeContextMenu]);
+
+  const handleGenerateAnalysisClick = useCallback(() => {
+    if (contextMenu.item && onGenerateAnalysis) {
+      onGenerateAnalysis(contextMenu.item);
+    }
+    closeContextMenu();
+  }, [contextMenu.item, onGenerateAnalysis, closeContextMenu]);
 
   const handlePojoModalClose = useCallback(() => {
     setPojoModal({ visible: false, files: [] });
@@ -404,6 +418,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
           onNewFile={handleNewFileClick}
           onNewFolder={handleNewFolderClick}
           onGeneratePojo={handleGeneratePojoClick}
+          onGenerateAnalysis={onGenerateAnalysis ? handleGenerateAnalysisClick : undefined}
           onOpenInSplit={handleOpenInSplitClick}
           onClose={closeContextMenu}
         />
@@ -419,12 +434,9 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
       )}
 
       {inputModal.type === 'newFile' && (
-        <InputModal
+        <CreateFileModal
           title="Yeni Dosya"
-          label="Dosya adı (.json veya .xml):"
-          placeholder="örn: data.json veya config.xml"
-          defaultValue="new-file.json"
-          onSubmit={handleInputModalSubmit}
+          onSubmit={handleCreateFileModalSubmit}
           onCancel={handleInputModalCancel}
         />
       )}

@@ -3874,3 +3874,155 @@
   color: #ffb74d;
   border-color: #f57c00;
 }
+
+/* CreateFileModal radio options */
+.create-file-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-right: 4px;
+}
+
+.create-file-radio input {
+  margin: 0;
+}
+
+/* Analysis view (Confluence markdown + switch) */
+.analysis-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.analysis-view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+.analysis-view-switch {
+  display: flex;
+  gap: 4px;
+}
+
+.analysis-view-switch button {
+  padding: 6px 14px;
+  font-size: 13px;
+  border: 1px solid #dee2e6;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #495057;
+}
+
+.analysis-view-switch button:hover {
+  background: #f8f9fa;
+}
+
+.analysis-view-switch button.active {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+
+.btn-close-analysis {
+  padding: 6px 12px;
+  font-size: 13px;
+  border: 1px solid #dee2e6;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #495057;
+}
+
+.btn-close-analysis:hover {
+  background: #f8f9fa;
+}
+
+.analysis-view-content {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.analysis-markdown-raw {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.analysis-markdown-preview {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.analysis-markdown-preview h1,
+.analysis-markdown-preview h2,
+.analysis-markdown-preview h3 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.analysis-markdown-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.analysis-markdown-preview th,
+.analysis-markdown-preview td {
+  border: 1px solid #dee2e6;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.analysis-markdown-preview th {
+  background: #f8f9fa;
+}
+
+.dark-theme .analysis-view-toolbar {
+  border-bottom-color: #4a5568;
+}
+
+.dark-theme .analysis-view-switch button {
+  border-color: #4a5568;
+  background: #2d3748;
+  color: #e1e4e8;
+}
+
+.dark-theme .analysis-view-switch button:hover {
+  background: #3d4852;
+}
+
+.dark-theme .analysis-view-switch button.active {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+
+.dark-theme .btn-close-analysis {
+  border-color: #4a5568;
+  background: #2d3748;
+  color: #e1e4e8;
+}
+
+.dark-theme .btn-close-analysis:hover {
+  background: #3d4852;
+}
+
+.dark-theme .analysis-markdown-preview th,
+.dark-theme .analysis-markdown-preview td {
+  border-color: #4a5568;
+}
+
+.dark-theme .analysis-markdown-preview th {
+  background: #1a202c;
+}

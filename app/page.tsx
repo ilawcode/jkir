@@ -65,6 +65,9 @@ export default function Home() {
   const [analysisConfigOpen, setAnalysisConfigOpen] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisMarkdown, setAnalysisMarkdown] = useState<string | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<string>('');
+  const [analysisProgress, setAnalysisProgress] = useState<number | null>(null);
+  const [analysisPhase, setAnalysisPhase] = useState<'model' | 'generate'>('model');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastWidthRef = useRef(DEFAULT_PANEL_WIDTH);
@@ -260,6 +263,9 @@ export default function Home() {
     if (!analysisFolder) return;
     setAnalysisConfigOpen(false);
     setAnalysisLoading(true);
+    setAnalysisStatus('Model hazırlanıyor...');
+    setAnalysisProgress(null);
+    setAnalysisPhase('model');
     setActiveTab('analysis');
     const files = getFilesFromFolder(analysisFolder);
     if (files.length === 0) {
@@ -267,8 +273,10 @@ export default function Home() {
       return;
     }
     const prompt = buildAnalysisPrompt(files);
-    generateAnalysis(modelId, prompt, (status) => {
-      // optional: set status message in UI
+    generateAnalysis(modelId, prompt, (detail) => {
+      setAnalysisPhase(detail.phase);
+      setAnalysisStatus(detail.status);
+      setAnalysisProgress(detail.progress);
     })
       .then((markdown) => {
         setAnalysisMarkdown(markdown);
@@ -281,6 +289,8 @@ export default function Home() {
       .finally(() => {
         setAnalysisLoading(false);
         setAnalysisFolder(null);
+        setAnalysisStatus('');
+        setAnalysisProgress(null);
       });
   }, [analysisFolder, getFilesFromFolder]);
 
@@ -346,12 +356,26 @@ export default function Home() {
   const renderTabContent = () => {
     if (analysisLoading) {
       return (
-        <div className="d-flex align-items-center justify-content-center flex-grow-1">
-          <div className="text-center">
-            <div className="spinner-border text-primary mb-2" role="status">
-              <span className="visually-hidden">Yükleniyor...</span>
+        <div className="analysis-loading-panel">
+          <div className="analysis-loading-content">
+            <p className="analysis-loading-status">{analysisStatus}</p>
+            <div className="analysis-progress-wrap">
+              {analysisProgress != null ? (
+                <div className="analysis-progress-bar">
+                  <div
+                    className="analysis-progress-fill"
+                    style={{ width: `${analysisProgress}%` }}
+                  />
+                </div>
+              ) : (
+                <div className="analysis-progress-bar analysis-progress-indeterminate">
+                  <div className="analysis-progress-fill" />
+                </div>
+              )}
             </div>
-            <p>Analiz üretiliyor...</p>
+            <p className="analysis-loading-phase">
+              {analysisPhase === 'model' ? 'Model yükleniyor' : 'Analiz üretiliyor'}
+            </p>
           </div>
         </div>
       );

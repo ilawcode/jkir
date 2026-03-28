@@ -2359,11 +2359,115 @@
 }
 
 .collection-name {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.collection-file-badges {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  margin-left: 2px;
+}
+
+.collection-badge {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.collection-badge-type.json {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.collection-badge-type.xml {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
+}
+
+.collection-badge-role.request {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.collection-badge-role.response {
+  background: #ede7f6;
+  color: #5e35b1;
+  border: 1px solid #b39ddb;
+}
+
+.collection-badge-variant.success {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #81c784;
+}
+
+.collection-badge-variant.error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.collection-badge-variant.business {
+  background: #fff8e1;
+  color: #f57f17;
+  border: 1px solid #ffe082;
+}
+
+.dark-theme .collection-badge-type.json {
+  background: #1a3a5c;
+  color: #64b5f6;
+  border-color: #1e88e5;
+}
+
+.dark-theme .collection-badge-type.xml {
+  background: #4e2a00;
+  color: #ffb74d;
+  border-color: #f57c00;
+}
+
+.dark-theme .collection-badge-role.request {
+  background: #1b3d1f;
+  color: #81c784;
+  border-color: #388e3c;
+}
+
+.dark-theme .collection-badge-role.response {
+  background: #2d1f4a;
+  color: #b39ddb;
+  border-color: #7e57c2;
+}
+
+.dark-theme .collection-badge-variant.success {
+  background: #1b3d1f;
+  color: #a5d6a7;
+  border-color: #388e3c;
+}
+
+.dark-theme .collection-badge-variant.error {
+  background: #3d1a1a;
+  color: #ef9a9a;
+  border-color: #c62828;
+}
+
+.dark-theme .collection-badge-variant.business {
+  background: #3d3510;
+  color: #ffd54f;
+  border-color: #f9a825;
 }
 
 .collection-children {
@@ -4025,4 +4129,80 @@
 
 .dark-theme .analysis-markdown-preview th {
   background: #1a202c;
+}
+
+/* Analysis loading / progress panel */
+.analysis-loading-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 24px;
+}
+
+.analysis-loading-content {
+  width: 100%;
+  max-width: 420px;
+}
+
+.analysis-loading-status {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.analysis-loading-phase {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #6c757d;
+  text-align: center;
+}
+
+.analysis-progress-wrap {
+  margin: 8px 0;
+}
+
+.analysis-progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #e9ecef;
+  overflow: hidden;
+}
+
+.analysis-progress-fill {
+  height: 100%;
+  background: #0d6efd;
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.analysis-progress-bar.analysis-progress-indeterminate .analysis-progress-fill {
+  width: 40% !important;
+  animation: analysis-progress-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes analysis-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.dark-theme .analysis-loading-status {
+  color: #e1e4e8;
+}
+
+.dark-theme .analysis-loading-phase {
+  color: #a0aec0;
+}
+
+.dark-theme .analysis-progress-bar {
+  background: #4a5568;
+}
+
+.dark-theme .analysis-progress-fill {
+  background: #0d6efd;
 }

@@ -14,6 +14,7 @@ interface CollectionContextMenuProps {
   onNewFolder: () => void;
   onGeneratePojo: () => void;
   onGenerateAnalysis?: () => void;
+  onExportPostman?: () => void;
   onOpenInSplit?: () => void;
   onClose: () => void;
 }
@@ -29,6 +30,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
   onNewFolder,
   onGeneratePojo,
   onGenerateAnalysis,
+  onExportPostman,
   onOpenInSplit,
   onClose,
 }) => {
@@ -122,6 +124,13 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
             <span>Analiz Üret</span>
           </button>
         </>
+      )}
+
+      {isFolder && onExportPostman && (
+        <button className="context-menu-item postman-export" onClick={onExportPostman}>
+          <span className="context-icon">🚀</span>
+          <span>Postman collection dışa aktar</span>
+        </button>
       )}
 
       <div className="context-menu-divider" />

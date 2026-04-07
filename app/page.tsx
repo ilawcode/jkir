@@ -17,6 +17,7 @@ import { objectToXml, formatXml } from '../utils/xmlParser';
 import { buildAnalysisPrompt } from '../utils/analysisPrompt';
 import { generateAnalysis } from '../lib/llm';
 import type { JkirCollection } from '../hooks/useCollections';
+import { downloadPostmanCollection } from '../utils/postmanExport';
 
 const MIN_PANEL_WIDTH = 180;
 const DEFAULT_PANEL_WIDTH = 280;
@@ -474,6 +475,7 @@ export default function Home() {
                 onSearch={searchCollections}
                 onOpenInSplit={handleOpenInSplit}
                 onGenerateAnalysis={handleGenerateAnalysis}
+                onExportPostman={(folder) => downloadPostmanCollection(folder)}
               />
             </div>
           </div>

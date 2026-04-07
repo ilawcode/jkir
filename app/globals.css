@@ -2376,98 +2376,71 @@
   margin-left: 2px;
 }
 
-.collection-badge {
-  font-size: 9px;
+/* Tek satır: JSONReqOK, XMLResErr … */
+.collection-badge-combined {
+  font-size: 10px;
   font-weight: 700;
   line-height: 1.2;
-  padding: 2px 5px;
+  padding: 2px 7px;
   border-radius: 4px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid #cfd8dc;
+  background: #eceff1;
+  color: #37474f;
 }
 
-.collection-badge-type.json {
-  background: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #90caf9;
-}
-
-.collection-badge-type.xml {
-  background: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ffcc80;
-}
-
-.collection-badge-role.request {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #a5d6a7;
-}
-
-.collection-badge-role.response {
-  background: #ede7f6;
-  color: #5e35b1;
-  border: 1px solid #b39ddb;
-}
-
-.collection-badge-variant.success {
+.collection-badge-combined.role-request {
+  border-color: #66bb6a;
   background: #e8f5e9;
   color: #1b5e20;
-  border: 1px solid #81c784;
 }
 
-.collection-badge-variant.error {
+.collection-badge-combined.role-response {
+  border-color: #9575cd;
+  background: #ede7f6;
+  color: #4527a0;
+}
+
+.collection-badge-combined.var-err {
   background: #ffebee;
-  color: #c62828;
-  border: 1px solid #ef9a9a;
+  border-color: #e57373;
+  color: #b71c1c;
 }
 
-.collection-badge-variant.business {
+.collection-badge-combined.var-biz {
   background: #fff8e1;
-  color: #f57f17;
-  border: 1px solid #ffe082;
+  border-color: #ffca28;
+  color: #e65100;
 }
 
-.dark-theme .collection-badge-type.json {
-  background: #1a3a5c;
-  color: #64b5f6;
-  border-color: #1e88e5;
+.dark-theme .collection-badge-combined {
+  background: #37474f;
+  border-color: #546e7a;
+  color: #eceff1;
 }
 
-.dark-theme .collection-badge-type.xml {
-  background: #4e2a00;
-  color: #ffb74d;
-  border-color: #f57c00;
-}
-
-.dark-theme .collection-badge-role.request {
+.dark-theme .collection-badge-combined.role-request {
   background: #1b3d1f;
-  color: #81c784;
-  border-color: #388e3c;
+  border-color: #66bb6a;
+  color: #c8e6c9;
 }
 
-.dark-theme .collection-badge-role.response {
+.dark-theme .collection-badge-combined.role-response {
   background: #2d1f4a;
-  color: #b39ddb;
-  border-color: #7e57c2;
+  border-color: #9575cd;
+  color: #e1bee7;
 }
 
-.dark-theme .collection-badge-variant.success {
-  background: #1b3d1f;
-  color: #a5d6a7;
-  border-color: #388e3c;
-}
-
-.dark-theme .collection-badge-variant.error {
+.dark-theme .collection-badge-combined.var-err {
   background: #3d1a1a;
-  color: #ef9a9a;
-  border-color: #c62828;
+  border-color: #e57373;
+  color: #ffcdd2;
 }
 
-.dark-theme .collection-badge-variant.business {
+.dark-theme .collection-badge-combined.var-biz {
   background: #3d3510;
-  color: #ffd54f;
-  border-color: #f9a825;
+  border-color: #ffca28;
+  color: #ffe082;
 }
 
 .collection-children {

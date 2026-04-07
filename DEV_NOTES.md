@@ -11,7 +11,7 @@
 - Dosya oluşturma: Request/Response + Success/Error/Business Error; migrasyon (mevcut dosyalar response+success).
 - Model indirme / analiz için durum metni + progress bar (`page.tsx`).
 - ONNX konsol uyarısı için `lib/llm.ts`: `env.backends.onnx.logLevel`, `session_options.logSeverityLevel`, geçici `console.warn` filtresi.
-- **Koleksiyon ağacında rozetler:** Her dosyada JSON/XML, Req/Res, (Response ise) OK/Err/Biz — `CollectionItem.tsx` + `globals.css`.
+- **Koleksiyon ağacında rozetler:** Tek etiket `JSONReqOK` / `JSONResOK` vb. Dosya adında `request` / `response` kelimesi varsa Req/Res **dosya adından** çıkarılır (import/migrasyon hepsini Res yapsa bile). `utils/fileSemanticDisplay.ts` + `CollectionItem.tsx`.
 - **Dokümantasyon:** `docs/sunum-direktor-urun-ve-vizyon.md` (yönetici sunumu).
 
 ---

@@ -2,6 +2,12 @@
 
 import React from 'react';
 import { JkirCollection } from '../hooks/useCollections';
+import {
+  getCombinedSemanticLabel,
+  getDisplayDocumentRole,
+  getDisplayResponseVariant,
+  inferDocumentRoleFromFileName,
+} from '../utils/fileSemanticDisplay';
 
 interface CollectionItemProps {
   item: JkirCollection;
@@ -15,26 +21,23 @@ interface CollectionItemProps {
 
 function FileSemanticBadges({ item }: { item: JkirCollection }) {
   if (item.type !== 'file') return null;
-  const role = item.documentRole ?? 'response';
-  const variant = item.responseVariant ?? 'success';
-  const ext = item.fileType === 'xml' ? 'XML' : 'JSON';
+  const role = getDisplayDocumentRole(item);
+  const variant = getDisplayResponseVariant(item);
+  const label = getCombinedSemanticLabel(item);
+  const titleParts = [
+    role === 'request' ? 'Request' : 'Response',
+    variant === 'success' ? 'Success' : variant === 'error' ? 'Error' : 'Business Error',
+    inferDocumentRoleFromFileName(item.name) != null ? '(dosya adından)' : '',
+  ].filter(Boolean);
 
   return (
     <span className="collection-file-badges" onClick={(e) => e.stopPropagation()}>
-      <span className={`collection-badge collection-badge-type ${item.fileType === 'xml' ? 'xml' : 'json'}`}>
-        {ext}
+      <span
+        className={`collection-badge-combined role-${role} var-${variant === 'success' ? 'ok' : variant === 'error' ? 'err' : 'biz'}`}
+        title={titleParts.join(' · ')}
+      >
+        {label}
       </span>
-      <span className={`collection-badge collection-badge-role ${role === 'request' ? 'request' : 'response'}`}>
-        {role === 'request' ? 'Req' : 'Res'}
-      </span>
-      {role === 'response' && (
-        <span
-          className={`collection-badge collection-badge-variant ${variant === 'success' ? 'success' : variant === 'error' ? 'error' : 'business'}`}
-          title={variant === 'businessError' ? 'Business Error' : variant === 'error' ? 'Error' : 'Success'}
-        >
-          {variant === 'success' ? 'OK' : variant === 'error' ? 'Err' : 'Biz'}
-        </span>
-      )}
     </span>
   );
 }

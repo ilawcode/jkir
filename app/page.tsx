@@ -9,14 +9,9 @@ import QueryView from '../components/QueryView';
 import CollectionToolbar from '../components/CollectionToolbar';
 import CollectionExplorer from '../components/CollectionExplorer';
 import ThemeToggle from '../components/ThemeToggle';
-import AnalysisConfigModal from '../components/AnalysisConfigModal';
-import AnalysisView from '../components/AnalysisView';
 import useCollections from '../hooks/useCollections';
 import useTheme from '../hooks/useTheme';
 import { objectToXml, formatXml } from '../utils/xmlParser';
-import { buildAnalysisPrompt } from '../utils/analysisPrompt';
-import { generateAnalysis } from '../lib/llm';
-import type { JkirCollection } from '../hooks/useCollections';
 import { downloadPostmanCollection } from '../utils/postmanExport';
 
 const MIN_PANEL_WIDTH = 180;
@@ -42,7 +37,6 @@ export default function Home() {
     expandToItem,
     searchCollections,
     findItemById,
-    getFilesFromFolder,
   } = useCollections();
 
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -60,15 +54,6 @@ export default function Home() {
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-
-  // Analysis (LLM) state
-  const [analysisFolder, setAnalysisFolder] = useState<JkirCollection | null>(null);
-  const [analysisConfigOpen, setAnalysisConfigOpen] = useState(false);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisMarkdown, setAnalysisMarkdown] = useState<string | null>(null);
-  const [analysisStatus, setAnalysisStatus] = useState<string>('');
-  const [analysisProgress, setAnalysisProgress] = useState<number | null>(null);
-  const [analysisPhase, setAnalysisPhase] = useState<'model' | 'generate'>('model');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastWidthRef = useRef(DEFAULT_PANEL_WIDTH);
@@ -255,51 +240,6 @@ export default function Home() {
     });
   }, [createFile]);
 
-  const handleGenerateAnalysis = useCallback((folder: JkirCollection) => {
-    setAnalysisFolder(folder);
-    setAnalysisConfigOpen(true);
-  }, []);
-
-  const handleAnalysisStart = useCallback((modelId: string) => {
-    if (!analysisFolder) return;
-    setAnalysisConfigOpen(false);
-    setAnalysisLoading(true);
-    setAnalysisStatus('Model hazırlanıyor...');
-    setAnalysisProgress(null);
-    setAnalysisPhase('model');
-    setActiveTab('analysis');
-    const files = getFilesFromFolder(analysisFolder);
-    if (files.length === 0) {
-      setAnalysisLoading(false);
-      return;
-    }
-    const prompt = buildAnalysisPrompt(files);
-    generateAnalysis(modelId, prompt, (detail) => {
-      setAnalysisPhase(detail.phase);
-      setAnalysisStatus(detail.status);
-      setAnalysisProgress(detail.progress);
-    })
-      .then((markdown) => {
-        setAnalysisMarkdown(markdown);
-      })
-      .catch((err) => {
-        console.error('Analysis failed:', err);
-        setAnalysisMarkdown(`# Analiz hatası\n\n${String(err)}`);
-        setActiveTab('analysis');
-      })
-      .finally(() => {
-        setAnalysisLoading(false);
-        setAnalysisFolder(null);
-        setAnalysisStatus('');
-        setAnalysisProgress(null);
-      });
-  }, [analysisFolder, getFilesFromFolder]);
-
-  const handleAnalysisClose = useCallback(() => {
-    setAnalysisMarkdown(null);
-    setActiveTab('code');
-  }, []);
-
   // Drag resize logic (sidebar)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -355,32 +295,6 @@ export default function Home() {
   }, [isCollapsed, sidebarWidth]);
 
   const renderTabContent = () => {
-    if (analysisLoading) {
-      return (
-        <div className="analysis-loading-panel">
-          <div className="analysis-loading-content">
-            <p className="analysis-loading-status">{analysisStatus}</p>
-            <div className="analysis-progress-wrap">
-              {analysisProgress != null ? (
-                <div className="analysis-progress-bar">
-                  <div
-                    className="analysis-progress-fill"
-                    style={{ width: `${analysisProgress}%` }}
-                  />
-                </div>
-              ) : (
-                <div className="analysis-progress-bar analysis-progress-indeterminate">
-                  <div className="analysis-progress-fill" />
-                </div>
-              )}
-            </div>
-            <p className="analysis-loading-phase">
-              {analysisPhase === 'model' ? 'Model yükleniyor' : 'Analiz üretiliyor'}
-            </p>
-          </div>
-        </div>
-      );
-    }
     switch (activeTab) {
       case 'code':
         return (
@@ -403,14 +317,6 @@ export default function Home() {
         return <FlowView data={activeParsedJson} />;
       case 'query':
         return <QueryView data={activeParsedJson} />;
-      case 'analysis':
-        return analysisMarkdown ? (
-          <AnalysisView markdown={analysisMarkdown} onClose={handleAnalysisClose} />
-        ) : (
-          <div className="d-flex align-items-center justify-content-center flex-grow-1 text-muted">
-            Analiz sonucu yok. Klasöre sağ tıklayıp &quot;Analiz Üret&quot; ile oluşturun.
-          </div>
-        );
       default:
         return <TreeView data={activeParsedJson} onDataChange={handleDataChange} />;
     }
@@ -474,7 +380,6 @@ export default function Home() {
                 onExpandToItem={expandToItem}
                 onSearch={searchCollections}
                 onOpenInSplit={handleOpenInSplit}
-                onGenerateAnalysis={handleGenerateAnalysis}
                 onExportPostman={(folder) => downloadPostmanCollection(folder)}
               />
             </div>
@@ -501,7 +406,6 @@ export default function Home() {
             <TabNavigation
               activeTab={activeTab}
               onTabChange={setActiveTab}
-              showAnalysisTab={!!analysisMarkdown || analysisLoading}
             />
             <div className="tab-content flex-grow-1 overflow-auto">
               {renderTabContent()}
@@ -509,13 +413,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      <AnalysisConfigModal
-        visible={analysisConfigOpen}
-        folder={analysisFolder}
-        onStart={handleAnalysisStart}
-        onClose={() => { setAnalysisConfigOpen(false); setAnalysisFolder(null); }}
-      />
     </div>
   );
 }

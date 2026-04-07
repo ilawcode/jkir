@@ -23,7 +23,6 @@ interface CollectionExplorerProps {
   onExpandToItem: (id: string) => void;
   onSearch: (query: string) => JkirCollection[];
   onOpenInSplit?: (id: string) => void;
-  onGenerateAnalysis?: (folder: JkirCollection) => void;
   onExportPostman?: (folder: JkirCollection) => void;
 }
 
@@ -49,7 +48,6 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   onExpandToItem,
   onSearch,
   onOpenInSplit,
-  onGenerateAnalysis,
   onExportPostman,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -234,13 +232,6 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     }
     closeContextMenu();
   }, [contextMenu.item, onOpenInSplit, closeContextMenu]);
-
-  const handleGenerateAnalysisClick = useCallback(() => {
-    if (contextMenu.item && onGenerateAnalysis) {
-      onGenerateAnalysis(contextMenu.item);
-    }
-    closeContextMenu();
-  }, [contextMenu.item, onGenerateAnalysis, closeContextMenu]);
 
   const handleExportPostmanClick = useCallback(() => {
     if (contextMenu.item && contextMenu.item.type === 'folder' && onExportPostman) {
@@ -427,7 +418,6 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
           onNewFile={handleNewFileClick}
           onNewFolder={handleNewFolderClick}
           onGeneratePojo={handleGeneratePojoClick}
-          onGenerateAnalysis={onGenerateAnalysis ? handleGenerateAnalysisClick : undefined}
           onExportPostman={onExportPostman ? handleExportPostmanClick : undefined}
           onOpenInSplit={handleOpenInSplitClick}
           onClose={closeContextMenu}

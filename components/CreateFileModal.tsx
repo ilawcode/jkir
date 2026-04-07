@@ -3,10 +3,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { DocumentRole, ResponseVariant } from '../hooks/useCollections';
 
+export type CreateFileExtension = '.json' | '.xml';
+
 export interface CreateFileModalResult {
   name: string;
   documentRole: DocumentRole;
   responseVariant: ResponseVariant;
+}
+
+const EXTENSION_OPTIONS: { value: CreateFileExtension; label: string }[] = [
+  { value: '.json', label: '.json' },
+  { value: '.xml', label: '.xml' },
+];
+
+function stripKnownExtension(raw: string): string {
+  return raw.trim().replace(/\.(json|xml)$/i, '');
 }
 
 interface CreateFileModalProps {
@@ -20,7 +31,8 @@ const CreateFileModal: React.FC<CreateFileModalProps> = ({
   onSubmit,
   onCancel,
 }) => {
-  const [name, setName] = useState('new-file.json');
+  const [baseName, setBaseName] = useState('new-file');
+  const [extension, setExtension] = useState<CreateFileExtension>('.json');
   const [documentRole, setDocumentRole] = useState<DocumentRole>('response');
   const [responseVariant, setResponseVariant] = useState<ResponseVariant>('success');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,11 +42,13 @@ const CreateFileModal: React.FC<CreateFileModalProps> = ({
     inputRef.current?.select();
   }, []);
 
+  const baseSanitized = stripKnownExtension(baseName);
+  const canSubmit = baseSanitized.length > 0;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const finalName = /\.(json|xml)$/i.test(trimmed) ? trimmed : `${trimmed}.json`;
+    if (!canSubmit) return;
+    const finalName = `${baseSanitized}${extension}`;
     onSubmit({
       name: finalName,
       documentRole,
@@ -55,17 +69,32 @@ const CreateFileModal: React.FC<CreateFileModalProps> = ({
         </div>
         <form onSubmit={handleSubmit}>
           <div className="rename-modal-body">
-            <label htmlFor="create-file-name">Dosya adı (.json veya .xml)</label>
-            <div className="rename-input-wrapper">
+            <label htmlFor="create-file-name">Dosya adı</label>
+            <div className="create-file-name-row">
               <input
                 ref={inputRef}
                 id="create-file-name"
+                className="create-file-name-input"
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={baseName}
+                onChange={(e) => setBaseName(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="örn: data.json veya config.xml"
+                placeholder="örn: data veya create-order-request"
+                autoComplete="off"
               />
+              <select
+                id="create-file-extension"
+                className="create-file-extension-select"
+                value={extension}
+                onChange={(e) => setExtension(e.target.value as CreateFileExtension)}
+                aria-label="Dosya uzantısı"
+              >
+                {EXTENSION_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div style={{ marginTop: '12px' }}>
@@ -131,7 +160,7 @@ const CreateFileModal: React.FC<CreateFileModalProps> = ({
             <button type="button" className="btn-cancel-modal" onClick={onCancel}>
               İptal
             </button>
-            <button type="submit" className="btn-save-modal" disabled={!name.trim()}>
+            <button type="submit" className="btn-save-modal" disabled={!canSubmit}>
               Oluştur
             </button>
           </div>

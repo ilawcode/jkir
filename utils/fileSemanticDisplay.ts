@@ -35,13 +35,19 @@ export function getDisplayResponseVariant(item: JkirCollection): ResponseVariant
   return item.responseVariant ?? 'success';
 }
 
-/** Tek etiket: JSONResOK, XMLReqErr, … */
-export function getCombinedSemanticLabel(item: JkirCollection): string {
+export function isXmlFile(item: JkirCollection): boolean {
+  return item.fileType === 'xml' || item.name.toLowerCase().endsWith('.xml');
+}
+
+/** Tooltip / erişilebilirlik için tam açıklama */
+export function getSemanticDescription(item: JkirCollection): string {
   if (item.type !== 'file') return '';
-  const ext = item.fileType === 'xml' || item.name.toLowerCase().endsWith('.xml') ? 'XML' : 'JSON';
+  const fmt = isXmlFile(item) ? 'XML' : 'JSON';
   const role = getDisplayDocumentRole(item);
   const variant = getDisplayResponseVariant(item);
-  const rolePart = role === 'request' ? 'Req' : 'Res';
-  const varPart = variant === 'success' ? 'OK' : variant === 'error' ? 'Err' : 'Biz';
-  return `${ext}${rolePart}${varPart}`;
+  const roleTr = role === 'request' ? 'İstek (Request)' : 'Yanıt (Response)';
+  const varTr =
+    variant === 'success' ? 'Başarı' : variant === 'error' ? 'Hata' : 'İş kuralı hatası';
+  const src = inferDocumentRoleFromFileName(item.name) != null ? ' · Rol dosya adından' : '';
+  return `${fmt} · ${roleTr} · ${varTr}${src}`;
 }

@@ -71,6 +71,7 @@ function migrateCollections(items: JkirCollection[]): JkirCollection[] {
 export const useCollections = () => {
   const [collections, setCollections] = useState<JkirCollection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount and migrate existing files (fileType, documentRole, responseVariant)
@@ -522,6 +523,8 @@ export const useCollections = () => {
     expandToItem,
     searchCollections,
     getFilesFromFolder,
+    compareTargetId,
+    setCompareTargetId,
   };
 };
 

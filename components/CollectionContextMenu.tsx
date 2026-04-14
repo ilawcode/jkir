@@ -15,6 +15,7 @@ interface CollectionContextMenuProps {
   onGeneratePojo: () => void;
   onExportPostman?: () => void;
   onOpenInSplit?: () => void;
+  onCompare?: () => void;
   onClose: () => void;
 }
 
@@ -30,6 +31,7 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
   onGeneratePojo,
   onExportPostman,
   onOpenInSplit,
+  onCompare,
   onClose,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -106,6 +108,13 @@ const CollectionContextMenu: React.FC<CollectionContextMenuProps> = ({
             <span>Sağda Aç</span>
           </button>
         </>
+      )}
+
+      {!isFolder && onCompare && (
+        <button className="context-menu-item" onClick={onCompare}>
+          <span className="context-icon">⚖️</span>
+          <span>Karşılaştır</span>
+        </button>
       )}
 
       <div className="context-menu-divider" />

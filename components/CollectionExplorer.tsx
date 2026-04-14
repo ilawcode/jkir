@@ -23,6 +23,7 @@ interface CollectionExplorerProps {
   onExpandToItem: (id: string) => void;
   onSearch: (query: string) => JkirCollection[];
   onOpenInSplit?: (id: string) => void;
+  onCompare?: (id: string) => void;
   onExportPostman?: (folder: JkirCollection) => void;
 }
 
@@ -48,6 +49,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
   onExpandToItem,
   onSearch,
   onOpenInSplit,
+  onCompare,
   onExportPostman,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -232,6 +234,13 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
     }
     closeContextMenu();
   }, [contextMenu.item, onOpenInSplit, closeContextMenu]);
+
+  const handleCompareClick = useCallback(() => {
+    if (contextMenu.item && contextMenu.item.type === 'file' && onCompare) {
+      onCompare(contextMenu.item.id);
+    }
+    closeContextMenu();
+  }, [contextMenu.item, onCompare, closeContextMenu]);
 
   const handleExportPostmanClick = useCallback(() => {
     if (contextMenu.item && contextMenu.item.type === 'folder' && onExportPostman) {
@@ -420,6 +429,7 @@ const CollectionExplorer: React.FC<CollectionExplorerProps> = ({
           onGeneratePojo={handleGeneratePojoClick}
           onExportPostman={onExportPostman ? handleExportPostmanClick : undefined}
           onOpenInSplit={handleOpenInSplitClick}
+          onCompare={onCompare ? handleCompareClick : undefined}
           onClose={closeContextMenu}
         />
       )}

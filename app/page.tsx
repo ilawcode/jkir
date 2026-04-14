@@ -37,6 +37,8 @@ export default function Home() {
     expandToItem,
     searchCollections,
     findItemById,
+    compareTargetId,
+    setCompareTargetId,
   } = useCollections();
 
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -58,9 +60,9 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastWidthRef = useRef(DEFAULT_PANEL_WIDTH);
 
-  // Derive files from openFiles state
   const leftFile = openFiles.left ? findItemById(collections, openFiles.left) : null;
   const rightFile = openFiles.right ? findItemById(collections, openFiles.right) : null;
+  const compareTargetFile = compareTargetId ? findItemById(collections, compareTargetId) : null;
   const activeParsedJson = activePane === 'left' ? parsedJsonLeft : parsedJsonRight;
 
   // Sync selectedId from localStorage on initial load
@@ -154,6 +156,12 @@ export default function Home() {
       return { ...prev, right: id };
     });
   }, [setSelectedId, findItemById, collections]);
+
+  // Handle setting a file as a compare target
+  const handleCompare = useCallback((id: string) => {
+    setCompareTargetId(id);
+    setActiveTab('code');
+  }, [setCompareTargetId]);
 
   // Close pane handlers
   const handleCloseLeft = useCallback(() => {
@@ -380,6 +388,7 @@ export default function Home() {
                 onExpandToItem={expandToItem}
                 onSearch={searchCollections}
                 onOpenInSplit={handleOpenInSplit}
+                onCompare={handleCompare}
                 onExportPostman={(folder) => downloadPostmanCollection(folder)}
               />
             </div>

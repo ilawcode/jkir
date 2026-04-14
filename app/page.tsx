@@ -317,6 +317,8 @@ export default function Home() {
             onRightJsonParse={handleRightJsonParse}
             onCloseLeft={handleCloseLeft}
             onCloseRight={handleCloseRight}
+            compareTargetFile={compareTargetFile}
+            onCloseCompare={() => setCompareTargetId(null)}
           />
         );
       case 'tree':

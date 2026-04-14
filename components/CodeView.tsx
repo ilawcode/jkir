@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { JkirCollection } from '../hooks/useCollections';
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, placeholder as cmPlaceholder } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
+import { MergeView } from '@codemirror/merge';
 import { json, jsonParseLinter } from '@codemirror/lang-json';
 import { xml } from '@codemirror/lang-xml';
 import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
@@ -19,6 +20,7 @@ interface CodeViewProps {
     onContentChange: (content: string) => void;
     onJsonParse: (data: unknown) => void;
     onClose?: () => void;
+    compareContent?: string;
 }
 
 // Custom light theme
@@ -144,10 +146,11 @@ function xmlLinter() {
     });
 }
 
-const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse, onClose }) => {
+const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse, onClose, compareContent }) => {
     const [error, setError] = useState<string | null>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
+    const mergeViewRef = useRef<MergeView | null>(null);
     const currentFileIdRef = useRef<string | null>(null);
     const [isDark, setIsDark] = useState(false);
 
@@ -204,7 +207,11 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse,
         }
 
         // Destroy old editor
-        if (editorViewRef.current) {
+        if (mergeViewRef.current) {
+            mergeViewRef.current.destroy();
+            mergeViewRef.current = null;
+            editorViewRef.current = null;
+        } else if (editorViewRef.current) {
             editorViewRef.current.destroy();
             editorViewRef.current = null;
         }
@@ -257,43 +264,66 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse,
             ? 'XML verisi buraya yazın...\n\n<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <item>Test</item>\n</root>'
             : 'JSON verisi buraya yazın...\n\n{\n  "name": "Test",\n  "version": "1.0"\n}';
 
-        const state = EditorState.create({
-            doc: content,
-            extensions: [
-                lineNumbers(),
-                highlightActiveLineGutter(),
-                highlightActiveLine(),
-                history(),
-                foldGutter(),
-                indentOnInput(),
-                bracketMatching(),
-                closeBrackets(),
-                autocompletion(),
-                highlightSelectionMatches(),
-                ...langExtensions,
-                lintGutter(),
-                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-                darkThemeCompartment.of(isDark ? oneDark : lightTheme),
-                cmPlaceholder(placeholderText),
-                keymap.of([
-                    ...defaultKeymap,
-                    ...historyKeymap,
-                    ...closeBracketsKeymap,
-                    ...foldKeymap,
-                    ...searchKeymap,
-                    indentWithTab,
-                ]),
-                updateListener,
-                EditorView.lineWrapping,
-            ],
-        });
+        const extensions = [
+            lineNumbers(),
+            highlightActiveLineGutter(),
+            highlightActiveLine(),
+            history(),
+            foldGutter(),
+            indentOnInput(),
+            bracketMatching(),
+            closeBrackets(),
+            autocompletion(),
+            highlightSelectionMatches(),
+            ...langExtensions,
+            lintGutter(),
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            darkThemeCompartment.of(isDark ? oneDark : lightTheme),
+            cmPlaceholder(placeholderText),
+            keymap.of([
+                ...defaultKeymap,
+                ...historyKeymap,
+                ...closeBracketsKeymap,
+                ...foldKeymap,
+                ...searchKeymap,
+                indentWithTab,
+            ]),
+            updateListener,
+            EditorView.lineWrapping,
+        ];
 
-        const view = new EditorView({
-            state,
-            parent: editorContainerRef.current,
-        });
+        let view: EditorView;
 
-        editorViewRef.current = view;
+        if (compareContent !== undefined) {
+             const mergeView = new MergeView({
+                a: {
+                    doc: compareContent,
+                    extensions: [
+                        ...extensions,
+                        EditorView.editable.of(false),
+                    ],
+                },
+                b: {
+                    doc: content,
+                    extensions,
+                },
+                parent: editorContainerRef.current,
+             });
+             editorViewRef.current = mergeView.b;
+             mergeViewRef.current = mergeView;
+        } else {
+            const state = EditorState.create({
+                doc: content,
+                extensions,
+            });
+
+            view = new EditorView({
+                state,
+                parent: editorContainerRef.current,
+            });
+
+            editorViewRef.current = view;
+        }
 
         return () => {
             // Cleanup on unmount only
@@ -303,10 +333,13 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse,
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (editorViewRef.current) {
+            if (mergeViewRef.current) {
+                mergeViewRef.current.destroy();
+                mergeViewRef.current = null;
+            } else if (editorViewRef.current) {
                 editorViewRef.current.destroy();
-                editorViewRef.current = null;
             }
+            editorViewRef.current = null;
         };
     }, []);
 

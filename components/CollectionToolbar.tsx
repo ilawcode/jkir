@@ -10,6 +10,7 @@ interface CollectionToolbarProps {
   onCreateFile: (result: CreateFileModalResult) => void;
   onExport: () => void;
   onImport: (file: File) => Promise<void>;
+  isSimpleMode?: boolean;
 }
 
 type ModalType = 'folder' | 'file' | null;
@@ -19,6 +20,7 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
   onCreateFile,
   onExport,
   onImport,
+  isSimpleMode,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -71,13 +73,15 @@ const CollectionToolbar: React.FC<CollectionToolbarProps> = ({
     <>
       <div className="collection-toolbar">
         <div className="toolbar-left">
-          <button
-            className="toolbar-action-btn"
-            onClick={handleNewFolder}
-            title="Yeni Klasör"
-          >
-            <span className="toolbar-icon">📁</span>
-          </button>
+          {!isSimpleMode && (
+            <button
+              className="toolbar-action-btn"
+              onClick={handleNewFolder}
+              title="Yeni Klasör"
+            >
+              <span className="toolbar-icon">📁</span>
+            </button>
+          )}
           <button
             className="toolbar-action-btn"
             onClick={handleNewFile}

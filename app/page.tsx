@@ -11,14 +11,20 @@ import CollectionExplorer from '../components/CollectionExplorer';
 import ThemeToggle from '../components/ThemeToggle';
 import useCollections from '../hooks/useCollections';
 import useTheme from '../hooks/useTheme';
+import useAppMode from '../hooks/useAppMode';
 import { objectToXml, formatXml } from '../utils/xmlParser';
 import { downloadPostmanCollection } from '../utils/postmanExport';
+import ModeSelectionScreen from '../components/ModeSelectionScreen';
 
 const MIN_PANEL_WIDTH = 180;
 const DEFAULT_PANEL_WIDTH = 280;
 const SNAP_THRESHOLD = 60;
 
+const SNAP_THRESHOLD = 60;
+
 export default function Home() {
+  const { mode, isLoaded: modeLoaded, selectMode, switchMode } = useAppMode();
+  
   const {
     collections,
     selectedId,
@@ -39,7 +45,7 @@ export default function Home() {
     findItemById,
     compareTargetId,
     setCompareTargetId,
-  } = useCollections();
+  } = useCollections(mode === 'simple');
 
   const { theme, resolvedTheme, setTheme } = useTheme();
 
@@ -332,7 +338,7 @@ export default function Home() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !modeLoaded) {
     return (
       <div className="d-flex align-items-center justify-content-center vh-100">
         <div className="text-center">
@@ -345,6 +351,10 @@ export default function Home() {
     );
   }
 
+  if (mode === null) {
+    return <ModeSelectionScreen onSelectMode={selectMode} />;
+  }
+
   return (
     <div className="d-flex flex-column vh-100">
       {/* Header */}
@@ -354,6 +364,15 @@ export default function Home() {
           <p className="header-subtitle">JSON &amp; XML verilerini kolayca görselleştirin</p>
         </div>
         <div className="header-right">
+          <select 
+            className="form-select form-select-sm me-3" 
+            style={{ width: 'auto' }}
+            value={mode}
+            onChange={(e) => switchMode(e.target.value as 'simple' | 'workspace')}
+          >
+            <option value="workspace">Workspace Mode</option>
+            <option value="simple">Simple Mode</option>
+          </select>
           <ThemeToggle
             theme={theme}
             resolvedTheme={resolvedTheme}
@@ -375,6 +394,7 @@ export default function Home() {
               onCreateFile={handleCreateFileFromToolbar}
               onExport={exportCollections}
               onImport={importCollections}
+              isSimpleMode={mode === 'simple'}
             />
             <div className="collection-explorer-wrapper">
               <CollectionExplorer

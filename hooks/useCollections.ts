@@ -68,7 +68,7 @@ function migrateCollections(items: JkirCollection[]): JkirCollection[] {
   });
 }
 
-export const useCollections = () => {
+export const useCollections = (isSimpleMode: boolean = false) => {
   const [collections, setCollections] = useState<JkirCollection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
@@ -76,6 +76,24 @@ export const useCollections = () => {
 
   // Load from localStorage on mount and migrate existing files (fileType, documentRole, responseVariant)
   useEffect(() => {
+    if (isSimpleMode) {
+      const defaultFile: JkirCollection = {
+        id: generateId(),
+        name: 'untitled.json',
+        type: 'file',
+        fileType: 'json',
+        content: '{}',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        documentRole: 'response',
+        responseVariant: 'success',
+      };
+      setCollections([defaultFile]);
+      setSelectedId(defaultFile.id);
+      setIsLoaded(true);
+      return;
+    }
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -91,11 +109,11 @@ export const useCollections = () => {
       setCollections(getDefaultCollections());
     }
     setIsLoaded(true);
-  }, []);
+  }, [isSimpleMode]);
 
   // Save to localStorage when collections change
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && !isSimpleMode) {
       try {
         const state: CollectionsState = { collections, selectedId };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -103,7 +121,7 @@ export const useCollections = () => {
         console.error('Failed to save collections:', e);
       }
     }
-  }, [collections, selectedId, isLoaded]);
+  }, [collections, selectedId, isLoaded, isSimpleMode]);
 
   // Find item by ID recursively
   const findItemById = useCallback((items: JkirCollection[], id: string): JkirCollection | null => {

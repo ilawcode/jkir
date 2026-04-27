@@ -43,3 +43,13 @@ Phases execute in numeric order: 1 → 2
 |-------|----------------|--------|-----------|
 | 1. Comparison Initialization Logic | 0/1 | Not started | - |
 | 2. Diff Code Editor Representation | 0/1 | Not started | - |
+
+### Phase 3: uygulama girişinde simle mode seçimi ve workpsace seçimi ekleyeceğiz. Simple mode ile direk kulalnıcı klasör oluşturmadan kod editor açık halde defaultta bir dosya var gibi açılacak yeni dosya ekleyebilir, dosyaları karşılaştırabilir diğer kısımdan sadece fark olarak klasör oluşturmak zorunda kalmayacak ve her seferinde dosyalar silinecek eğer saklama istiyor ise workspace kısmını kullanacak, seçimler altına uygulamanın çalışma prensibini de anlatan cümle olarak eklenecek, kullanıcı seçim altında her zaman bu modda aç seçeneği işratleyebilir bu sefer uygulamaya geldiğinde tekrar seçim ekranı açılmadan direk, ilgili mod açılacak en üst bar da mod değişitrme özelliği eklenecek mod değiştirirken yine default seçimim olacak
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 2
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 3 to break down)

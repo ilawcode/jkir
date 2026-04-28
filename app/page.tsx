@@ -15,12 +15,12 @@ import useAppMode from '../hooks/useAppMode';
 import { objectToXml, formatXml } from '../utils/xmlParser';
 import { downloadPostmanCollection } from '../utils/postmanExport';
 import ModeSelectionScreen from '../components/ModeSelectionScreen';
+import ModeSwitcher from '../components/ModeSwitcher';
 
 const MIN_PANEL_WIDTH = 180;
 const DEFAULT_PANEL_WIDTH = 280;
 const SNAP_THRESHOLD = 60;
 
-const SNAP_THRESHOLD = 60;
 
 export default function Home() {
   const { mode, isLoaded: modeLoaded, selectMode, switchMode } = useAppMode();
@@ -58,7 +58,7 @@ export default function Home() {
   const [parsedJsonLeft, setParsedJsonLeft] = useState<unknown>(null);
   const [parsedJsonRight, setParsedJsonRight] = useState<unknown>(null);
 
-  const [activeTab, setActiveTab] = useState<TabType>('tree');
+  const [activeTab, setActiveTab] = useState<TabType>('code');
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -71,10 +71,11 @@ export default function Home() {
   const compareTargetFile = compareTargetId ? findItemById(collections, compareTargetId) : null;
   const activeParsedJson = activePane === 'left' ? parsedJsonLeft : parsedJsonRight;
 
-  // Sync selectedId from localStorage on initial load
+  // Sync selectedId on initial load — always open first file in code tab
   useEffect(() => {
     if (isLoaded && selectedId && !openFiles.left && !openFiles.right) {
       setOpenFiles({ left: selectedId, right: null });
+      setActiveTab('code');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded]);
@@ -364,15 +365,7 @@ export default function Home() {
           <p className="header-subtitle">JSON &amp; XML verilerini kolayca görselleştirin</p>
         </div>
         <div className="header-right">
-          <select 
-            className="form-select form-select-sm me-3" 
-            style={{ width: 'auto' }}
-            value={mode}
-            onChange={(e) => switchMode(e.target.value as 'simple' | 'workspace')}
-          >
-            <option value="workspace">Workspace Mode</option>
-            <option value="simple">Simple Mode</option>
-          </select>
+          <ModeSwitcher mode={mode} onSwitchMode={switchMode} />
           <ThemeToggle
             theme={theme}
             resolvedTheme={resolvedTheme}
@@ -433,12 +426,12 @@ export default function Home() {
 
         {/* Right Panel */}
         <div className="split-right-panel">
-          <div className="view-panel h-100 d-flex flex-column">
+          <div className="view-panel">
             <TabNavigation
               activeTab={activeTab}
               onTabChange={setActiveTab}
             />
-            <div className="tab-content flex-grow-1 overflow-auto">
+            <div className="tab-content-wrapper">
               {renderTabContent()}
             </div>
           </div>

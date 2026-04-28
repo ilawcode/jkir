@@ -1904,6 +1904,20 @@
   flex-direction: column;
 }
 
+.split-right-panel .view-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tab-content-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* Resizer Handle */
 .split-resizer {
   width: 6px;

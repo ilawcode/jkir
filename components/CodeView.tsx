@@ -13,7 +13,8 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { syntaxHighlighting, defaultHighlightStyle, indentOnInput, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language';
 import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
-import { parseXml, formatXml, minifyXml } from '../utils/xmlParser';
+import { parseXml, minifyXml } from '../utils/xmlParser';
+import { lenientFormatJson, lenientFormatXml } from '../utils/formatter';
 
 interface CodeViewProps {
     file: JkirCollection | null;
@@ -353,31 +354,36 @@ const CodeView: React.FC<CodeViewProps> = ({ file, onContentChange, onJsonParse,
             return;
         }
 
+        const { formatted, error: formatError } = fileType === 'xml' 
+            ? lenientFormatXml(value) 
+            : lenientFormatJson(value);
+
+        editorViewRef.current.dispatch({
+            changes: { from: 0, to: value.length, insert: formatted },
+        });
+
+        if (formatError) {
+            // Show error but keep the formatted content
+            setError(`Formatlandı (Hata tespit edildi: ${formatError})`);
+        } else {
+            setError(null);
+        }
+
+        // Try to parse for visualization tabs (tree, flow, query)
         try {
             if (fileType === 'xml') {
-                const formatted = formatXml(value);
-                editorViewRef.current.dispatch({
-                    changes: { from: 0, to: value.length, insert: formatted },
-                });
-                setError(null);
                 const parsed = parseXml(formatted);
                 onJsonParse(parsed);
-                onContentChange(formatted);
             } else {
-                const parsed = JSON.parse(value);
-                const formatted = JSON.stringify(parsed, null, 2);
-                editorViewRef.current.dispatch({
-                    changes: { from: 0, to: value.length, insert: formatted },
-                });
-                setError(null);
+                const parsed = JSON.parse(formatted);
                 onJsonParse(parsed);
-                onContentChange(formatted);
             }
-        } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : 'Bilinmeyen hata';
-            setError(`Geçersiz ${fileType === 'xml' ? 'XML' : 'JSON'}: ${errorMessage}`);
+        } catch {
+            // If still unparsable, visualization tabs will show empty/null
             onJsonParse(null);
         }
+        
+        onContentChange(formatted);
     }, [onJsonParse, onContentChange, fileType]);
 
     const handleClear = useCallback(() => {

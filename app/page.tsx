@@ -14,6 +14,7 @@ import useTheme from '../hooks/useTheme';
 import useAppMode from '../hooks/useAppMode';
 import { objectToXml, formatXml } from '../utils/xmlParser';
 import { downloadPostmanCollection } from '../utils/postmanExport';
+import Link from 'next/link';
 import ModeSelectionScreen from '../components/ModeSelectionScreen';
 import ModeSwitcher from '../components/ModeSwitcher';
 
@@ -365,6 +366,9 @@ export default function Home() {
           <p className="header-subtitle">JSON &amp; XML verilerini kolayca görselleştirin</p>
         </div>
         <div className="header-right">
+          <Link href="/about" className="btn btn-link text-decoration-none p-0 me-3" style={{ fontSize: '14px', color: 'inherit', opacity: 0.8 }} title="Uygulama Hakkında">
+            ℹ️ Hakkında
+          </Link>
           <ModeSwitcher mode={mode} onSwitchMode={switchMode} />
           <ThemeToggle
             theme={theme}
